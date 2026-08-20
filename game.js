@@ -135,9 +135,34 @@ function makeHazardTexture() {
   return new THREE.CanvasTexture(c);
 }
 
+function makeWheelGroup(radius, width, tireColor, hubColor) {
+  const group = new THREE.Group();
+  const tireGeo = new THREE.TorusGeometry(radius, width / 2, 10, 20);
+  tireGeo.rotateY(Math.PI / 2);
+  const tireMat = new THREE.MeshStandardMaterial({ color: tireColor, roughness: 0.9 });
+  const tire = new THREE.Mesh(tireGeo, tireMat);
+  tire.castShadow = true;
+  group.add(tire);
+
+  const hubGeo = new THREE.CylinderGeometry(radius * 0.5, radius * 0.5, width * 0.95, 12);
+  hubGeo.rotateZ(Math.PI / 2);
+  const hubMat = new THREE.MeshStandardMaterial({ color: hubColor, roughness: 0.35, metalness: 0.55 });
+  const hub = new THREE.Mesh(hubGeo, hubMat);
+  group.add(hub);
+
+  for (let i = 0; i < 5; i++) {
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(width * 0.9, radius * 0.35, radius * 0.1), hubMat);
+    spoke.rotation.x = (i / 5) * Math.PI * 2;
+    group.add(spoke);
+  }
+
+  return group;
+}
+
 // ---------- Three.js scene ----------
 let renderer, scene, camera;
 let vehicle, forkGroup, carriedMeshes = [];
+let wheels = [];
 let dockGlowMat, shelfGlowMats = {};
 let dustPool = [];
 let confettiPool = [];
@@ -286,27 +311,58 @@ function buildDock() {
   scene.add(pad);
 
   const truck = new THREE.Group();
-  const cabMat = new THREE.MeshStandardMaterial({ color: 0xf2ede4, roughness: 0.5 });
-  const trailerMat = new THREE.MeshStandardMaterial({ color: 0xffb648, roughness: 0.6 });
-  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1b2430, roughness: 0.9 });
+  const truckX = 18.5;
+  const wheelRadius = 0.65;
+  const wheelTop = wheelRadius * 2 * 0.75; // visual ride height above axle center
+  const chassisY = wheelTop + 0.15;
 
-  const cab = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), cabMat);
-  cab.position.set(18.5, 1.6, -6.5);
+  const cabMat = new THREE.MeshStandardMaterial({ color: 0xf2ede4, roughness: 0.4, metalness: 0.15 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x2a3d4d, roughness: 0.2, metalness: 0.6 });
+  const trailerMat = new THREE.MeshStandardMaterial({ color: 0xffb648, roughness: 0.55 });
+  const trailerSkirtMat = new THREE.MeshStandardMaterial({ color: 0x6b4a1f, roughness: 0.7 });
+  const chassisMat = new THREE.MeshStandardMaterial({ color: 0x22262c, roughness: 0.7, metalness: 0.3 });
+  const bumperMat = new THREE.MeshStandardMaterial({ color: 0x2a2f36, roughness: 0.5, metalness: 0.4 });
+
+  // chassis rail running the length of the truck, ties cab+trailer visually to the wheels
+  const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.35, 13.5), chassisMat);
+  chassis.position.set(truckX, chassisY, -1.5);
+  chassis.castShadow = true;
+  truck.add(chassis);
+
+  // cab
+  const cabH = 3;
+  const cab = new THREE.Mesh(new THREE.BoxGeometry(3, cabH, 3), cabMat);
+  cab.position.set(truckX, chassisY + cabH / 2, -7.2);
   cab.castShadow = true;
   truck.add(cab);
+  const windshield = new THREE.Mesh(new THREE.BoxGeometry(2.7, 1.1, 0.12), glassMat);
+  windshield.position.set(truckX, chassisY + cabH - 0.6, -5.68);
+  truck.add(windshield);
+  const bumper = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.4, 0.3), bumperMat);
+  bumper.position.set(truckX, chassisY - 0.1, -8.75);
+  truck.add(bumper);
 
-  const trailer = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.2, 8), trailerMat);
-  trailer.position.set(18.5, 1.7, 1.5);
+  // trailer, two-tone with a darker skirt panel for visual break-up
+  const trailerH = 3.2;
+  const trailerLen = 8;
+  const trailer = new THREE.Mesh(new THREE.BoxGeometry(3.2, trailerH, trailerLen), trailerMat);
+  trailer.position.set(truckX, chassisY + trailerH / 2, 1.5);
   trailer.castShadow = true;
   truck.add(trailer);
+  const skirt = new THREE.Mesh(new THREE.BoxGeometry(3.24, 0.5, trailerLen), trailerSkirtMat);
+  skirt.position.set(truckX, chassisY + 0.25, 1.5);
+  truck.add(skirt);
+  for (let i = -1; i <= 1; i++) {
+    const rib = new THREE.Mesh(new THREE.BoxGeometry(0.06, trailerH - 0.4, trailerLen), new THREE.MeshStandardMaterial({ color: 0xe0a03a, roughness: 0.6 }));
+    rib.position.set(truckX + i * 1.05, chassisY + trailerH / 2 + 0.1, 1.5);
+    truck.add(rib);
+  }
 
-  const wheelGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.6, 16);
-  const wheelZs = [-8, -5, 0, 4];
+  const wheelZs = [-8, -5.3, -0.5, 2.3, 5];
   for (const wz of wheelZs) {
-    for (const side of [-1.6, 1.6]) {
-      const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-      wheel.rotation.z = Math.PI / 2;
-      wheel.position.set(18.5 + side, 0.6, wz);
+    for (const side of [-1.55, 1.55]) {
+      const wheel = makeWheelGroup(wheelRadius, 0.5, 0x111318, 0xb8bcc4);
+      wheel.position.set(truckX + side, wheelRadius, wz);
       truck.add(wheel);
     }
   }
@@ -390,20 +446,24 @@ function buildVehicle() {
   forkGroup.add(fork1, fork2);
   vehicle.add(forkGroup);
 
-  // wheels: dark tire + lighter hub for a two-tone industrial look
-  const tireMat = new THREE.MeshStandardMaterial({ color: 0x111318, roughness: 0.95 });
-  const hubMat = new THREE.MeshStandardMaterial({ color: 0xc9ccd1, roughness: 0.4, metalness: 0.5 });
-  const wheelPositions = [[-0.82, 0.4, 0.7], [0.82, 0.4, 0.7], [-0.82, 0.4, -0.85], [0.82, 0.4, -0.85]];
-  for (const p of wheelPositions) {
-    const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.32, 16), tireMat);
-    tire.rotation.x = Math.PI / 2;
-    tire.position.set(...p);
-    tire.castShadow = true;
-    vehicle.add(tire);
-    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.34, 10), hubMat);
-    hub.rotation.x = Math.PI / 2;
-    hub.position.set(...p);
-    vehicle.add(hub);
+  // wheels: chunky torus tires + hub/spokes, built so they can steer (front) and spin (all)
+  wheels = [];
+  const wheelPositions = [
+    [-0.82, 0.42, 0.7, true], [0.82, 0.42, 0.7, true],
+    [-0.82, 0.42, -0.85, false], [0.82, 0.42, -0.85, false],
+  ];
+  for (const [px, py, pz, isFront] of wheelPositions) {
+    const steerPivot = new THREE.Group();
+    steerPivot.position.set(px, py, pz);
+    vehicle.add(steerPivot);
+
+    const rollGroup = new THREE.Group();
+    steerPivot.add(rollGroup);
+
+    const wheelMesh = makeWheelGroup(0.42, 0.32, 0x111318, 0xc9ccd1);
+    rollGroup.add(wheelMesh);
+
+    wheels.push({ steerPivot, rollGroup, isFront });
   }
 
   // headlights / taillights
@@ -681,6 +741,16 @@ function updateVehicle(dt) {
     const speedFactor = Math.min(1, Math.abs(vehicleState.speed) / maxSpeed) * 0.7 + 0.3;
     const dir = vehicleState.speed >= 0 ? 1 : -1;
     vehicleState.heading += turnInput * 2.6 * speedFactor * dir * dt;
+  }
+
+  const targetSteer = turnInput * 0.5;
+  const wheelRadius = 0.4;
+  const rollDelta = (vehicleState.speed / wheelRadius) * dt;
+  for (const w of wheels) {
+    w.rollGroup.rotation.x += rollDelta;
+    if (w.isFront) {
+      w.steerPivot.rotation.y += (targetSteer - w.steerPivot.rotation.y) * Math.min(1, dt * 10);
+    }
   }
 
   vehicle.position.x += Math.sin(vehicleState.heading) * vehicleState.speed * dt;
