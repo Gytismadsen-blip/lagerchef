@@ -3,53 +3,78 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lagerchef – styr din virksomhed</title>
+<title>Lagerchef – byg din virksomhed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div id="startScreen" class="screen">
-  <h1>📦 Lagerchef</h1>
-  <p>Du er ny medarbejder i en logistikvirksomhed.</p>
-  <p>Din opgave: hent varer fra lageret og lever dem til lastbilen, før tiden løber ud.</p>
+  <div class="card intro">
+    <h1>📦 Lagerchef</h1>
+    <p class="tagline">Byg din egen logistikvirksomhed, en arbejdsdag ad gangen.</p>
 
-  <div class="rules">
-    <div class="rule"><span>⬆️⬇️⬅️➡️</span> Flyt dig</div>
-    <div class="rule"><span>MELLEMRUM</span> Hent / lever vare</div>
+    <div class="rules">
+      <div class="rule"><span>⬆️⬇️⬅️➡️</span> Flyt dig rundt på lageret</div>
+      <div class="rule"><span>MELLEMRUM</span> Hent varen / lever den</div>
+      <div class="rule"><span>💰</span> Brug pengene på opgraderinger mellem dagene</div>
+    </div>
+
+    <button id="startBtn" class="btnPrimary">Start dag 1</button>
   </div>
-
-  <button id="startBtn">Start arbejdsdag</button>
 </div>
 
 <div id="gameScreen" class="screen hidden">
   <div id="hud">
+    <div class="hudBox">📅 Dag <span id="dayNum">1</span>/<span id="dayTotal">4</span></div>
     <div class="hudBox">💰 <span id="money">0</span> kr</div>
-    <div class="hudBox">⏱️ <span id="timeLeft">120</span> sek</div>
+    <div class="hudBox">⏱️ <span id="timeLeft">45</span> sek</div>
     <div class="hudBox">✅ <span id="doneCount">0</span> leveret</div>
   </div>
 
   <div id="gameArea">
-    <canvas id="canvas" width="800" height="480"></canvas>
+    <div id="canvasWrap">
+      <canvas id="canvas" width="800" height="480"></canvas>
+      <div id="message"></div>
+    </div>
 
-    <div id="orders">
-      <h2>Ordrer</h2>
+    <div id="orders" class="card">
+      <h2>Dagens ordrer</h2>
       <div id="orderList"></div>
     </div>
   </div>
+</div>
 
-  <div id="message"></div>
+<div id="shopScreen" class="screen hidden">
+  <div class="card">
+    <h1>Dag <span id="shopDayJustDone">1</span> er slut!</h1>
+    <div class="dayResults">
+      <p>💰 Tjent i dag: <span id="dayEarnings">0</span> kr</p>
+      <p>✅ Leveret: <span id="dayDone">0</span> &nbsp; ❌ Misset: <span id="dayMissed">0</span></p>
+      <p class="totalMoney">Samlet kassebeholdning: <span id="shopMoney">0</span> kr</p>
+    </div>
+
+    <h2>Investér i virksomheden</h2>
+    <div id="upgradeList"></div>
+
+    <button id="continueBtn" class="btnPrimary">Fortsæt til dag <span id="nextDayNum">2</span></button>
+  </div>
 </div>
 
 <div id="endScreen" class="screen hidden">
-  <h1>Dagen er slut!</h1>
-  <div class="results">
-    <p>💰 Omsætning: <span id="finalMoney">0</span> kr</p>
-    <p>✅ Ordrer leveret: <span id="finalDone">0</span></p>
-    <p>❌ Ordrer misset: <span id="finalMissed">0</span></p>
-    <p>📈 Leveringssikkerhed: <span id="finalRate">0</span>%</p>
+  <div class="card">
+    <h1>🏆 Ugen er slut!</h1>
+    <div class="results">
+      <p>💰 Samlet omsætning: <span id="finalMoney">0</span> kr</p>
+      <p>✅ Ordrer leveret: <span id="finalDone">0</span></p>
+      <p>❌ Ordrer misset: <span id="finalMissed">0</span></p>
+      <p>📈 Leveringssikkerhed: <span id="finalRate">0</span>%</p>
+    </div>
+    <p id="rating"></p>
+    <button id="restartBtn" class="btnPrimary">Spil igen</button>
   </div>
-  <p id="rating"></p>
-  <button id="restartBtn">Spil igen</button>
 </div>
 
 <script src="game.js"></script>

@@ -2,23 +2,39 @@
   box-sizing: border-box;
 }
 
+:root {
+  --bg-deep: #16202e;
+  --bg-panel: #212f42;
+  --bg-panel-2: #2a3b52;
+  --accent: #ffb648;
+  --accent-2: #ff8c5a;
+  --text: #f4efe4;
+  --text-soft: #c7d0dd;
+  --good: #6fca6f;
+  --bad: #e2694f;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1b2430;
-  color: #f2ede4;
-  font-family: Verdana, Tahoma, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at 20% -10%, #24344a 0%, var(--bg-deep) 55%);
+  color: var(--text);
+  font-family: "Nunito", Verdana, Tahoma, sans-serif;
   font-size: 18px;
-  line-height: 1.5;
+  line-height: 1.55;
+  padding: 16px;
+}
+
+h1, h2 {
+  font-family: "Baloo 2", "Nunito", sans-serif;
 }
 
 .screen {
   width: 100%;
-  max-width: 900px;
-  padding: 24px;
+  max-width: 960px;
   text-align: center;
 }
 
@@ -26,109 +42,174 @@ body {
   display: none;
 }
 
+.card {
+  background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-panel-2) 100%);
+  border-radius: 20px;
+  padding: 28px 32px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
 h1 {
-  font-size: 2.2em;
-  margin-bottom: 8px;
+  font-size: 2.4em;
+  margin: 0 0 6px;
+  color: var(--accent);
+  text-shadow: 0 2px 0 rgba(0,0,0,0.25);
+}
+
+.tagline {
+  color: var(--text-soft);
+  font-size: 1.1em;
+  margin-top: 0;
 }
 
 button {
-  font-family: inherit;
-  font-size: 1.2em;
-  padding: 14px 28px;
+  font-family: "Baloo 2", sans-serif;
+  font-size: 1.25em;
+  padding: 14px 30px;
   margin-top: 20px;
   border: none;
-  border-radius: 12px;
-  background: #f2a541;
-  color: #1b2430;
-  font-weight: bold;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #241505;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 6px 0 #b85a1f, 0 10px 18px rgba(0,0,0,0.35);
+  transition: transform 0.08s ease;
 }
 
 button:hover {
-  background: #ffb95c;
+  transform: translateY(-2px);
+}
+
+button:active {
+  transform: translateY(2px);
+  box-shadow: 0 3px 0 #b85a1f, 0 6px 12px rgba(0,0,0,0.3);
+}
+
+button:disabled {
+  background: #445267;
+  color: #93a2b6;
+  box-shadow: none;
+  cursor: default;
+  transform: none;
 }
 
 .rules {
   display: flex;
   justify-content: center;
-  gap: 32px;
-  margin: 24px 0;
+  gap: 18px;
+  margin: 26px 0 8px;
   flex-wrap: wrap;
 }
 
 .rule {
-  background: #26313f;
-  border-radius: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
   padding: 14px 18px;
-  min-width: 160px;
+  min-width: 170px;
+  max-width: 220px;
 }
 
 .rule span {
   display: block;
-  font-size: 1.3em;
+  font-size: 1.4em;
   margin-bottom: 6px;
 }
 
 #hud {
   display: flex;
   justify-content: center;
-  gap: 16px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 14px;
   flex-wrap: wrap;
 }
 
 .hudBox {
-  background: #26313f;
-  padding: 8px 16px;
-  border-radius: 10px;
-  font-weight: bold;
+  background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-panel-2) 100%);
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 700;
   font-size: 1.1em;
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 #gameArea {
   display: flex;
-  gap: 16px;
+  gap: 18px;
   justify-content: center;
   flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+#canvasWrap {
+  position: relative;
 }
 
 canvas {
   background: #cfd8c9;
-  border-radius: 12px;
-  border: 4px solid #26313f;
+  border-radius: 18px;
+  border: 5px solid var(--bg-panel-2);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.4);
   max-width: 100%;
   height: auto;
+  display: block;
 }
 
 #orders {
-  background: #26313f;
-  border-radius: 12px;
-  padding: 16px;
-  width: 220px;
+  width: 240px;
   text-align: left;
+  padding: 18px;
 }
 
 #orders h2 {
   margin-top: 0;
   font-size: 1.2em;
+  color: var(--accent);
 }
 
 .orderCard {
-  background: #1b2430;
+  background: rgba(0,0,0,0.2);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-left: 6px solid var(--accent);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.orderIcon {
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-left: 6px solid #f2a541;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3em;
+  flex-shrink: 0;
+}
+
+.orderBody {
+  flex: 1;
 }
 
 .orderCard .orderTitle {
-  font-weight: bold;
-  margin-bottom: 4px;
+  font-weight: 800;
+  font-family: "Baloo 2", sans-serif;
+  margin-bottom: 2px;
+}
+
+.orderCard .orderReward {
+  color: var(--text-soft);
+  font-size: 0.9em;
 }
 
 .orderCard .deadlineBar {
-  height: 8px;
-  background: #3a4757;
+  height: 9px;
+  background: rgba(255,255,255,0.1);
   border-radius: 6px;
   margin-top: 8px;
   overflow: hidden;
@@ -136,23 +217,84 @@ canvas {
 
 .orderCard .deadlineFill {
   height: 100%;
-  background: #6fca6f;
+  transition: width 0.15s linear, background 0.3s ease;
 }
 
 #message {
-  min-height: 28px;
-  margin-top: 12px;
-  font-weight: bold;
-  font-size: 1.2em;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  text-align: center;
+  font-weight: 700;
+  font-family: "Baloo 2", sans-serif;
+  font-size: 1.15em;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  pointer-events: none;
+  min-height: 1.4em;
 }
 
-.results p {
-  font-size: 1.3em;
-  margin: 10px 0;
+.dayResults p, .results p {
+  font-size: 1.25em;
+  margin: 8px 0;
+}
+
+.totalMoney {
+  color: var(--accent);
+  font-weight: 800;
+  font-family: "Baloo 2", sans-serif;
 }
 
 #rating {
   font-size: 1.4em;
-  font-weight: bold;
+  font-weight: 800;
+  font-family: "Baloo 2", sans-serif;
   margin-top: 16px;
+  color: var(--accent);
+}
+
+#upgradeList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin: 18px 0 6px;
+  text-align: left;
+}
+
+.upgradeCard {
+  background: rgba(0,0,0,0.22);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.upgradeCard .upgradeIcon {
+  font-size: 1.8em;
+}
+
+.upgradeCard .upgradeName {
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 700;
+  font-size: 1.05em;
+}
+
+.upgradeCard .upgradeDesc {
+  color: var(--text-soft);
+  font-size: 0.92em;
+  flex: 1;
+}
+
+.upgradeCard button {
+  margin-top: 8px;
+  font-size: 1em;
+  padding: 10px 16px;
+  align-self: flex-start;
+}
+
+.upgradeCard.owned {
+  border-color: var(--good);
 }
