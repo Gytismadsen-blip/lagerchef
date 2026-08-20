@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lagerchef – styr din virksomhed</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="startScreen" class="screen">
+  <h1>📦 Lagerchef</h1>
+  <p>Du er ny medarbejder i en logistikvirksomhed.</p>
+  <p>Din opgave: hent varer fra lageret og lever dem til lastbilen, før tiden løber ud.</p>
+
+  <div class="rules">
+    <div class="rule"><span>⬆️⬇️⬅️➡️</span> Flyt dig</div>
+    <div class="rule"><span>MELLEMRUM</span> Hent / lever vare</div>
+  </div>
+
+  <button id="startBtn">Start arbejdsdag</button>
+</div>
+
+<div id="gameScreen" class="screen hidden">
+  <div id="hud">
+    <div class="hudBox">💰 <span id="money">0</span> kr</div>
+    <div class="hudBox">⏱️ <span id="timeLeft">120</span> sek</div>
+    <div class="hudBox">✅ <span id="doneCount">0</span> leveret</div>
+  </div>
+
+  <div id="gameArea">
+    <canvas id="canvas" width="800" height="480"></canvas>
+
+    <div id="orders">
+      <h2>Ordrer</h2>
+      <div id="orderList"></div>
+    </div>
+  </div>
+
+  <div id="message"></div>
+</div>
+
+<div id="endScreen" class="screen hidden">
+  <h1>Dagen er slut!</h1>
+  <div class="results">
+    <p>💰 Omsætning: <span id="finalMoney">0</span> kr</p>
+    <p>✅ Ordrer leveret: <span id="finalDone">0</span></p>
+    <p>❌ Ordrer misset: <span id="finalMissed">0</span></p>
+    <p>📈 Leveringssikkerhed: <span id="finalRate">0</span>%</p>
+  </div>
+  <p id="rating"></p>
+  <button id="restartBtn">Spil igen</button>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
