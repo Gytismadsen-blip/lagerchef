@@ -3,21 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lagerchef – byg din virksomhed</title>
+<title>Lagerchef 3D – byg din virksomhed</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 </head>
 <body>
 
 <div id="startScreen" class="screen">
   <div class="card intro">
-    <h1>📦 Lagerchef</h1>
+    <h1>🚜 Lagerchef 3D</h1>
     <p class="tagline">Byg din egen logistikvirksomhed, en arbejdsdag ad gangen.</p>
 
     <div class="rules">
-      <div class="rule"><span>⬆️⬇️⬅️➡️</span> Flyt dig rundt på lageret</div>
+      <div class="rule"><span>⬆️⬇️</span> Kør frem / bak</div>
+      <div class="rule"><span>⬅️➡️</span> Drej gaffeltrucken</div>
       <div class="rule"><span>MELLEMRUM</span> Hent varen / lever den</div>
       <div class="rule"><span>💰</span> Brug pengene på opgraderinger mellem dagene</div>
     </div>
@@ -36,8 +38,9 @@
 
   <div id="gameArea">
     <div id="canvasWrap">
-      <canvas id="canvas" width="800" height="480"></canvas>
+      <canvas id="canvas" width="900" height="520"></canvas>
       <div id="message"></div>
+      <div id="speedo"><div id="speedoFill"></div></div>
     </div>
 
     <div id="orders" class="card">

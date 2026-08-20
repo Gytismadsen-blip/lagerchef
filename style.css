@@ -235,6 +235,59 @@ canvas {
   min-height: 1.4em;
 }
 
+#speedo {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 100px;
+  height: 10px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+#speedoFill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #6fca6f, #ffb648, #e2694f);
+  transition: width 0.08s linear;
+}
+
+.worldLabel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: rgba(22, 32, 46, 0.82);
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  padding: 4px 10px;
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 700;
+  font-size: 0.85em;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.25;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.dockLabel {
+  border-color: var(--good);
+}
+
+.floatText {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  font-size: 1.1em;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
 .dayResults p, .results p {
   font-size: 1.25em;
   margin: 8px 0;
