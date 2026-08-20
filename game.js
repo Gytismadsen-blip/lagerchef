@@ -81,6 +81,60 @@ function beep(freq, dur, type = "sine", vol = 0.15) {
   }
 }
 
+// ---------- Textures ----------
+function makeConcreteTexture() {
+  const size = 256;
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const tctx = c.getContext("2d");
+  tctx.fillStyle = "#9a9d92";
+  tctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < 1400; i++) {
+    tctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.08})`;
+    tctx.fillRect(Math.random() * size, Math.random() * size, 2, 2);
+  }
+  for (let i = 0; i < 500; i++) {
+    tctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.06})`;
+    tctx.fillRect(Math.random() * size, Math.random() * size, 2, 2);
+  }
+  tctx.strokeStyle = "rgba(0,0,0,0.06)";
+  tctx.lineWidth = 1;
+  for (let i = 0; i < size; i += 64) {
+    tctx.beginPath();
+    tctx.moveTo(i, 0);
+    tctx.lineTo(i, size);
+    tctx.stroke();
+    tctx.beginPath();
+    tctx.moveTo(0, i);
+    tctx.lineTo(size, i);
+    tctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(11, 7);
+  return tex;
+}
+
+function makeHazardTexture() {
+  const size = 128;
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const tctx = c.getContext("2d");
+  tctx.fillStyle = "#181818";
+  tctx.fillRect(0, 0, size, size);
+  tctx.fillStyle = "#ffcc00";
+  tctx.save();
+  tctx.translate(size / 2, size / 2);
+  tctx.rotate(Math.PI / 4);
+  tctx.translate(-size, -size);
+  const stripe = 20;
+  for (let x = 0; x < size * 4; x += stripe * 2) {
+    tctx.fillRect(x, 0, stripe, size * 3);
+  }
+  tctx.restore();
+  return new THREE.CanvasTexture(c);
+}
+
 // ---------- Three.js scene ----------
 let renderer, scene, camera;
 let vehicle, forkGroup, carriedMeshes = [];
@@ -114,17 +168,11 @@ function initScene() {
   scene.add(sun);
 
   const floorGeo = new THREE.PlaneGeometry(WORLD_MAX_X - WORLD_MIN_X + 2, WORLD_MAX_Z - WORLD_MIN_Z + 2, 20, 12);
-  const floorMat = new THREE.MeshStandardMaterial({ color: 0xd7ddc9, roughness: 0.95 });
+  const floorMat = new THREE.MeshStandardMaterial({ map: makeConcreteTexture(), roughness: 0.95 });
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   scene.add(floor);
-
-  const grid = new THREE.GridHelper(WORLD_MAX_X - WORLD_MIN_X + 2, 22, 0x9aa38c, 0x9aa38c);
-  grid.position.y = 0.01;
-  grid.material.opacity = 0.35;
-  grid.material.transparent = true;
-  scene.add(grid);
 
   const backWallGeo = new THREE.BoxGeometry(WORLD_MAX_X - WORLD_MIN_X + 4, 6, 1);
   const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a3341, roughness: 0.9 });
@@ -133,6 +181,7 @@ function initScene() {
   backWall.receiveShadow = true;
   scene.add(backWall);
 
+  buildPillarsAndLights();
   for (const s of SHELVES) buildShelf(s);
   buildDock();
   buildVehicle();
@@ -160,6 +209,35 @@ function initScene() {
   dockLabel.innerHTML = "🚚<br>Lastbil";
   labelsLayer.appendChild(dockLabel);
   DOCK.labelEl = dockLabel;
+}
+
+function buildPillarsAndLights() {
+  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x3a4452, roughness: 0.8 });
+  const fixtureMat = new THREE.MeshStandardMaterial({ color: 0x1b2028, roughness: 0.6 });
+  const bulbMat = new THREE.MeshBasicMaterial({ color: 0xfff2c0 });
+  const pillarXs = [-8, 8];
+  const pillarZs = [-9, 0, 9];
+  for (const px of pillarXs) {
+    for (const pz of pillarZs) {
+      const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.7, 8, 0.7), pillarMat);
+      pillar.position.set(px, 4, pz);
+      pillar.castShadow = true;
+      pillar.receiveShadow = true;
+      scene.add(pillar);
+
+      const fixtureGroup = new THREE.Group();
+      fixtureGroup.position.set(px, 7.6, pz);
+      const housing = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 0.25, 10), fixtureMat);
+      const bulb = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.05, 10), bulbMat);
+      bulb.position.y = -0.14;
+      fixtureGroup.add(housing, bulb);
+      scene.add(fixtureGroup);
+
+      const lamp = new THREE.PointLight(0xfff2c0, 0.5, 14, 2);
+      lamp.position.set(px, 7.3, pz);
+      scene.add(lamp);
+    }
+  }
 }
 
 function buildShelf(s) {
@@ -237,47 +315,112 @@ function buildDock() {
 
 function buildVehicle() {
   vehicle = new THREE.Group();
-  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffb648, roughness: 0.5, metalness: 0.1 });
-  const darkMat = new THREE.MeshStandardMaterial({ color: 0x2a3341, roughness: 0.6 });
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf5c518, roughness: 0.35, metalness: 0.4 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x1c2128, roughness: 0.5, metalness: 0.3 });
+  const seatMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.7 });
+  const hazardMat = new THREE.MeshStandardMaterial({ map: makeHazardTexture(), roughness: 0.6 });
 
-  const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1, 2.2), bodyMat);
-  body.position.y = 0.9;
-  body.castShadow = true;
-  vehicle.add(body);
+  // chassis
+  const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.55, 2.3), bodyMat);
+  chassis.position.y = 0.65;
+  chassis.castShadow = true;
+  vehicle.add(chassis);
 
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1, 1), darkMat);
-  cabin.position.set(0, 1.7, -0.3);
-  cabin.castShadow = true;
-  vehicle.add(cabin);
+  // counterweight (rear, hazard-striped for realism/visibility)
+  const counterweight = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.7, 0.5), hazardMat);
+  counterweight.position.set(0, 0.75, -1.15);
+  counterweight.castShadow = true;
+  vehicle.add(counterweight);
 
-  const mast = new THREE.Mesh(new THREE.BoxGeometry(1.3, 2.4, 0.15), darkMat);
-  mast.position.set(0, 1.6, 1.15);
-  vehicle.add(mast);
+  // seat
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 0.6), seatMat);
+  seat.position.set(0, 1.1, -0.3);
+  seat.castShadow = true;
+  vehicle.add(seat);
+  const seatBack = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 0.12), seatMat);
+  seatBack.position.set(0, 1.45, -0.58);
+  vehicle.add(seatBack);
 
+  // overhead guard (open roll cage, not a solid cabin — reads much more like a real forklift)
+  const postGeo = new THREE.BoxGeometry(0.1, 1.5, 0.1);
+  const postPositions = [[-0.6, 1.65, -0.7], [0.6, 1.65, -0.7], [-0.6, 1.65, 0.5], [0.6, 1.65, 0.5]];
+  for (const p of postPositions) {
+    const post = new THREE.Mesh(postGeo, darkMat);
+    post.position.set(...p);
+    post.castShadow = true;
+    vehicle.add(post);
+  }
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.08, 1.4), darkMat);
+  roof.position.set(0, 2.42, -0.1);
+  roof.castShadow = true;
+  vehicle.add(roof);
+
+  // beacon light on the roof
+  const beaconMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xffaa00, emissiveIntensity: 0.9 });
+  const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), beaconMat);
+  beacon.position.set(0, 2.58, -0.1);
+  vehicle.add(beacon);
+  vehicle.userData.beacon = beaconMat;
+
+  // mast: two vertical rails + crossbar + hydraulic cylinder
+  const railGeo = new THREE.BoxGeometry(0.14, 2.5, 0.14);
+  const railL = new THREE.Mesh(railGeo, darkMat);
+  railL.position.set(-0.55, 1.55, 1.15);
+  const railR = new THREE.Mesh(railGeo, darkMat);
+  railR.position.set(0.55, 1.55, 1.15);
+  vehicle.add(railL, railR);
+  const crossTop = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.12, 0.14), darkMat);
+  crossTop.position.set(0, 2.7, 1.15);
+  vehicle.add(crossTop);
+  const hydraulic = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.1, 8), new THREE.MeshStandardMaterial({ color: 0x8a8f98, roughness: 0.4, metalness: 0.6 }));
+  hydraulic.position.set(0, 1.5, 0.95);
+  vehicle.add(hydraulic);
+
+  // fork carriage + forks
   forkGroup = new THREE.Group();
-  forkGroup.position.set(0, 0.5, 1.3);
-  const forkGeo = new THREE.BoxGeometry(0.15, 0.12, 1);
+  forkGroup.position.set(0, 0.45, 1.2);
+  const carriage = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.5, 0.1), darkMat);
+  carriage.position.set(0, 0.25, 0);
+  forkGroup.add(carriage);
+  const forkGeo = new THREE.BoxGeometry(0.14, 0.1, 1.1);
   const fork1 = new THREE.Mesh(forkGeo, darkMat);
-  fork1.position.set(-0.35, 0, 0.5);
+  fork1.position.set(-0.35, 0, 0.55);
   const fork2 = new THREE.Mesh(forkGeo, darkMat);
-  fork2.position.set(0.35, 0, 0.5);
+  fork2.position.set(0.35, 0, 0.55);
   forkGroup.add(fork1, fork2);
   vehicle.add(forkGroup);
 
-  const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.35, 14);
-  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111318, roughness: 0.9 });
-  const wheelPositions = [[-0.85, 0.4, 0.7], [0.85, 0.4, 0.7], [-0.85, 0.4, -0.7], [0.85, 0.4, -0.7]];
+  // wheels: dark tire + lighter hub for a two-tone industrial look
+  const tireMat = new THREE.MeshStandardMaterial({ color: 0x111318, roughness: 0.95 });
+  const hubMat = new THREE.MeshStandardMaterial({ color: 0xc9ccd1, roughness: 0.4, metalness: 0.5 });
+  const wheelPositions = [[-0.82, 0.4, 0.7], [0.82, 0.4, 0.7], [-0.82, 0.4, -0.85], [0.82, 0.4, -0.85]];
   for (const p of wheelPositions) {
-    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-    wheel.rotation.x = Math.PI / 2;
-    wheel.position.set(...p);
-    wheel.castShadow = true;
-    vehicle.add(wheel);
+    const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.32, 16), tireMat);
+    tire.rotation.x = Math.PI / 2;
+    tire.position.set(...p);
+    tire.castShadow = true;
+    vehicle.add(tire);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.34, 10), hubMat);
+    hub.rotation.x = Math.PI / 2;
+    hub.position.set(...p);
+    vehicle.add(hub);
   }
 
-  const light = new THREE.PointLight(0xfff2c0, 0.6, 8);
-  light.position.set(0, 1.2, 1.4);
-  vehicle.add(light);
+  // headlights / taillights
+  const headMat = new THREE.MeshStandardMaterial({ color: 0xfff2c0, emissive: 0xfff2c0, emissiveIntensity: 0.8 });
+  const tailMat = new THREE.MeshStandardMaterial({ color: 0xcc2222, emissive: 0xcc2222, emissiveIntensity: 0.7 });
+  for (const side of [-0.55, 0.55]) {
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), headMat);
+    head.position.set(side, 0.75, 1.25);
+    vehicle.add(head);
+    const tail = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), tailMat);
+    tail.position.set(side * 0.9, 0.7, -1.35);
+    vehicle.add(tail);
+  }
+
+  const headlight = new THREE.PointLight(0xfff2c0, 0.7, 9);
+  headlight.position.set(0, 1, 1.4);
+  vehicle.add(headlight);
 
   scene.add(vehicle);
 }
@@ -350,6 +493,7 @@ let carrying, money, timeLeft, doneCount, missedCount;
 let day, dayEarnings, dayDone, dayMissed, upgrades;
 let activeOrders, orderIdCounter, running, lastTime, msgTimer, spawnCooldown;
 let floatingTexts;
+let beaconPhase = 0;
 let keys = new Set();
 
 function upgradeValue(key) {
@@ -530,8 +674,8 @@ function updateVehicle(dt) {
   vehicleState.speed = Math.max(-maxSpeed * 0.55, Math.min(maxSpeed, vehicleState.speed));
 
   let turnInput = 0;
-  if (keys.has("ArrowLeft") || keys.has("KeyA")) turnInput = -1;
-  else if (keys.has("ArrowRight") || keys.has("KeyD")) turnInput = 1;
+  if (keys.has("ArrowLeft") || keys.has("KeyA")) turnInput = 1;
+  else if (keys.has("ArrowRight") || keys.has("KeyD")) turnInput = -1;
 
   if (turnInput !== 0 && Math.abs(vehicleState.speed) > 0.05) {
     const speedFactor = Math.min(1, Math.abs(vehicleState.speed) / maxSpeed) * 0.7 + 0.3;
@@ -549,6 +693,11 @@ function updateVehicle(dt) {
   speedoFillEl.style.width = `${speedFrac * 100}%`;
 
   if (speedFrac > 0.6 && Math.random() < 0.5) spawnDust();
+
+  beaconPhase += dt * 9;
+  if (vehicle.userData.beacon) {
+    vehicle.userData.beacon.emissiveIntensity = 0.5 + Math.sin(beaconPhase) * 0.4;
+  }
 
   camera.fov = 60 + speedFrac * 10;
   camera.updateProjectionMatrix();
