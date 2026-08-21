@@ -51,16 +51,51 @@
 </div>
 
 <div id="shopScreen" class="screen hidden">
-  <div class="card">
-    <h1>Dag <span id="shopDayJustDone">1</span> er slut!</h1>
+  <div class="card officeCard">
+    <h1>🏢 Kontor — Dag <span id="shopDayJustDone">1</span> er slut!</h1>
     <div class="dayResults">
       <p>💰 Tjent i dag: <span id="dayEarnings">0</span> kr</p>
       <p>✅ Leveret: <span id="dayDone">0</span> &nbsp; ❌ Misset: <span id="dayMissed">0</span></p>
       <p class="totalMoney">Samlet kassebeholdning: <span id="shopMoney">0</span> kr</p>
     </div>
 
-    <h2>Investér i virksomheden</h2>
-    <div id="upgradeList"></div>
+    <div class="officeLayout">
+      <nav id="officeMenu">
+        <button class="officeNavBtn active" data-panel="planlaegning">📋 Indkøb & salg</button>
+        <button class="officeNavBtn" data-panel="upgrades">🛠️ Udstyr</button>
+        <button class="officeNavBtn" data-panel="staff">👥 Ansæt personale</button>
+        <button class="officeNavBtn" data-panel="indkob">📦 Indkøb (case)</button>
+        <button class="officeNavBtn" data-panel="forhandling">🤝 Forhandling</button>
+        <button class="officeNavBtn" data-panel="jura">⚖️ Jura</button>
+        <button class="officeNavBtn" data-panel="transport">🚛 Transport</button>
+        <button class="officeNavBtn" data-panel="mrp">🏭 MRP / lager</button>
+        <a class="officeNavBtn officeNavLink" href="https://regnemaskine-gamma.vercel.app/" target="_blank" rel="noopener">🧮 Regnemaskine ↗</a>
+      </nav>
+
+      <div id="officeContent">
+        <div id="panel-planlaegning" class="officePanel">
+          <h2>Dagens indkøb & salg</h2>
+          <p class="taskScenario">Vælg leverandør og kundetype for dag <span id="planDayNum">2</span>. Valget påvirker din økonomi og dine ordrer hele dagen — ligesom i en rigtig virksomhed.</p>
+          <h3 class="planSubhead">📦 Vælg leverandør</h3>
+          <div id="supplierList" class="planList"></div>
+          <h3 class="planSubhead">🧑‍🤝‍🧑 Vælg kundetype</h3>
+          <div id="customerList" class="planList"></div>
+        </div>
+        <div id="panel-upgrades" class="officePanel hidden">
+          <h2>Udstyr til gaffeltrucken</h2>
+          <div id="upgradeList"></div>
+        </div>
+        <div id="panel-staff" class="officePanel hidden">
+          <h2>Ansæt personale</h2>
+          <div id="staffList"></div>
+        </div>
+        <div id="panel-indkob" class="officePanel hidden"></div>
+        <div id="panel-forhandling" class="officePanel hidden"></div>
+        <div id="panel-jura" class="officePanel hidden"></div>
+        <div id="panel-transport" class="officePanel hidden"></div>
+        <div id="panel-mrp" class="officePanel hidden"></div>
+      </div>
+    </div>
 
     <button id="continueBtn" class="btnPrimary">Fortsæt til dag <span id="nextDayNum">2</span></button>
   </div>

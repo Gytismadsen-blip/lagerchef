@@ -351,3 +351,212 @@ canvas {
 .upgradeCard.owned {
   border-color: var(--good);
 }
+
+.officeCard {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.officeLayout {
+  display: flex;
+  gap: 18px;
+  text-align: left;
+  margin-top: 18px;
+  align-items: flex-start;
+}
+
+#officeMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 190px;
+  flex-shrink: 0;
+}
+
+.officeNavBtn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 0;
+  font-family: "Nunito", sans-serif;
+  font-weight: 700;
+  font-size: 0.95em;
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: none;
+  transition: background 0.12s ease;
+}
+
+.officeNavBtn:hover {
+  background: rgba(255,255,255,0.08);
+  transform: none;
+}
+
+.officeNavBtn.active {
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #241505;
+}
+
+.officeNavLink {
+  margin-top: 8px;
+  border-color: var(--good);
+  color: var(--good);
+}
+
+#officeContent {
+  flex: 1;
+  min-width: 0;
+  background: rgba(0,0,0,0.15);
+  border-radius: 14px;
+  padding: 18px 20px;
+  min-height: 260px;
+}
+
+.officePanel h2 {
+  margin-top: 0;
+  color: var(--accent);
+  font-size: 1.15em;
+}
+
+.taskScenario {
+  color: var(--text-soft);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.taskOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.taskOption {
+  text-align: left;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 0;
+  font-family: "Nunito", sans-serif;
+  font-weight: 600;
+  font-size: 0.95em;
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.taskOption:hover:not(:disabled) {
+  background: rgba(255,255,255,0.12);
+  transform: none;
+}
+
+.taskOption:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.taskOption.correct {
+  border-color: var(--good);
+  background: rgba(111,202,111,0.18);
+  opacity: 1;
+}
+
+.taskOption.wrong {
+  border-color: var(--bad);
+  background: rgba(226,105,79,0.18);
+  opacity: 1;
+}
+
+.taskExplain {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.25);
+  font-size: 0.92em;
+  line-height: 1.5;
+}
+
+.taskExplain.good {
+  border-left: 4px solid var(--good);
+}
+
+.taskExplain.bad {
+  border-left: 4px solid var(--bad);
+}
+
+.taskDone {
+  color: var(--good);
+  font-weight: 800;
+  font-family: "Baloo 2", sans-serif;
+}
+
+.planSubhead {
+  color: var(--text-soft);
+  font-size: 0.95em;
+  margin: 18px 0 8px;
+  font-family: "Nunito", sans-serif;
+  font-weight: 800;
+}
+
+.planList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.planCard {
+  text-align: left;
+  background: rgba(255,255,255,0.06);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  font-family: "Nunito", sans-serif;
+  font-size: 1em;
+  font-weight: 400;
+  color: var(--text);
+  box-shadow: none;
+  margin: 0;
+}
+
+.planCard:hover {
+  background: rgba(255,255,255,0.1);
+  transform: none;
+}
+
+.planCard .planName {
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.planCard .planDesc {
+  font-size: 0.85em;
+  color: var(--text-soft);
+  font-weight: 400;
+}
+
+.planCard.selected {
+  border-color: var(--accent);
+  background: rgba(255,182,72,0.12);
+}
+
+@media (max-width: 720px) {
+  .officeLayout {
+    flex-direction: column;
+  }
+  #officeMenu {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .officeNavBtn {
+    width: auto;
+    flex: 1 1 auto;
+  }
+}

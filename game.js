@@ -67,6 +67,135 @@ const UPGRADES = [
   { key: "deadline", icon: "🗓️", name: "Bedre planlægning", desc: "Alle ordrer får 25% længere leveringsfrist.", cost: 100 },
 ];
 
+const STAFF = [
+  { key: "lagerLead", icon: "🧑‍🏭", name: "Lagermedarbejder", desc: "Flere hænder på gulvet — nye ordrer dukker op hurtigere.", cost: 180 },
+  { key: "kontorAssist", icon: "🧑‍💻", name: "Kontorassistent", desc: "Klarer papirarbejdet — I får automatisk 25 kr ekstra i kassen ved hver ny arbejdsdag.", cost: 150 },
+  { key: "indkober", icon: "🧑‍💼", name: "Indkøber", desc: "Forhandler bedre forsikrings- og leverandøraftaler hjem — bøden for forsinkede ordrer halveres.", cost: 160 },
+  { key: "saelger", icon: "🤝", name: "Sælger", desc: "Får bedre priser hjem på ordrerne — alle leverancer betaler 15% mere.", cost: 200 },
+];
+
+const TASKS = {
+  indkob: {
+    icon: "📦",
+    title: "Indkøb — Kraljic-matrisen",
+    scenario:
+      "En leverandør sælger en vare, der udgør en STOR del af jeres samlede indkøbsomkostninger. Der findes MANGE alternative leverandører på markedet, så I kan nemt skifte leverandør. Hvilken kategori i Kraljic-matrisen hører varen til?",
+    options: [
+      { text: "Strategisk vare", correct: false, explain: "Forkert — strategiske varer har høj værdi OG høj forsyningsrisiko (få leverandører). Her er der mange alternativer, så risikoen er lav." },
+      { text: "Løftestangsvare (leverage)", correct: true, explain: "Rigtigt! Høj økonomisk værdi + lav forsyningsrisiko (mange leverandører) = løftestangsvare. Her kan I bruge jeres indkøbsmagt til at forhandle en bedre pris." },
+      { text: "Flaskehalsvare", correct: false, explain: "Forkert — flaskehalsvarer har lav værdi men høj forsyningsrisiko (få leverandører). Her er der mange leverandører at vælge imellem." },
+      { text: "Rutinevare", correct: false, explain: "Forkert — rutinevarer har lav værdi og lav risiko. Her udgør varen en stor del af jeres omkostninger." },
+    ],
+    reward: 60,
+  },
+  forhandling: {
+    icon: "🤝",
+    title: "Forhandling — BATNA",
+    scenario:
+      "Du forhandler pris med en leverandør. Din BATNA (Best Alternative To a Negotiated Agreement) er en anden leverandør, der uden problemer kan levere samme vare 5% billigere. Leverandøren du sidder overfor nægter at gå ned i pris. Hvad gør du?",
+    options: [
+      { text: "Accepterer prisen for at undgå konflikt", correct: false, explain: "Forkert — uden at bruge din BATNA som forhandlingskort forærer du værdi væk, selvom du har et bedre alternativ." },
+      { text: "Nævner roligt dit alternativ og giver dem chancen for at matche det", correct: true, explain: "Rigtigt! En stærk BATNA skal bruges som pres i forhandlingen — roligt og sagligt, ikke skjult og ikke som en trussel." },
+      { text: "Går med det samme uden at sige noget", correct: false, explain: "For hurtigt — du mister chancen for at forbedre aftalen ved overhovedet at vise, at du har alternativer." },
+      { text: "Truer med at anmelde dem", correct: false, explain: "Forkert — det er hverken relevant eller en god forhandlingstaktik i denne situation." },
+    ],
+    reward: 60,
+  },
+  jura: {
+    icon: "⚖️",
+    title: "Jura — risikoens overgang",
+    scenario:
+      "I har købt varer 'ab fabrik' (Ex Works) hos en leverandør. Under transporten til jeres lager bliver varerne stjålet. Ifølge reglerne om risikoens overgang — hvem bærer tabet?",
+    options: [
+      { text: "Sælger (leverandøren)", correct: false, explain: "Forkert — ved Ex Works overgår risikoen til køber, så snart varen er stillet til rådighed på sælgers adresse." },
+      { text: "Køber (jeres virksomhed)", correct: true, explain: "Rigtigt! Ved 'Ex Works' overgår risikoen allerede, når varen stilles til rådighed hos sælger — selve transporten er købers ansvar og risiko." },
+      { text: "Transportfirmaet automatisk", correct: false, explain: "Forkert — transportøren hæfter kun efter sin egen fragtaftale, ikke automatisk efter reglerne om risikoens overgang." },
+      { text: "Ingen — tabet bortfalder", correct: false, explain: "Forkert — risikoen for varen ligger altid hos én af de to parter." },
+    ],
+    reward: 60,
+  },
+  transport: {
+    icon: "🚛",
+    title: "Transport & distribution",
+    scenario:
+      "En vigtig kunde skal akut bruge en ordre i morgen tidlig, 800 km væk. Flyfragt er dyrt men hurtigt. Lastbil er billigere, men tager 2 dage. Hvad vælger du ud fra den klassiske afvejning mellem pris og leveringstid?",
+    options: [
+      { text: "Lastbil, fordi det altid er billigst", correct: false, explain: "Forkert — her overholder lastbilen ikke deadline. Pris er ikke det eneste, der tæller i transportvalget." },
+      { text: "Fly, fordi leveringstiden er kritisk for kunden", correct: true, explain: "Rigtigt! Når leveringstiden er den kritiske faktor, vælger man bevidst den hurtigere men dyrere transportform — en klassisk trade-off." },
+      { text: "Skib, fordi det er mest bæredygtigt", correct: false, explain: "Forkert — skib er langsomst og slet ikke realistisk på en 800 km strækning med en akut deadline." },
+      { text: "Vent til det passer bedre", correct: false, explain: "Forkert — det ville koste jer kunden." },
+    ],
+    reward: 60,
+  },
+  mrp: {
+    icon: "🏭",
+    title: "MRP / lagerstyring — EOQ",
+    scenario:
+      "Jeres årlige forbrug (D) af en vare er 4.000 stk. Det koster 50 kr at afgive én ordre (S), og 8 kr pr. stk. om året at have varen på lager (H). EOQ = √(2×D×S ÷ H). Hvad er den optimale ordrestørrelse, afrundet?",
+    options: [
+      { text: "100 stk", correct: false, explain: "Forkert. √(2×4000×50÷8) = √50.000 ≈ 224 stk." },
+      { text: "224 stk", correct: true, explain: "Rigtigt! √(2×4000×50÷8) = √50.000 ≈ 224 stk — den ordrestørrelse minimerer de samlede lageromkostninger." },
+      { text: "4.000 stk", correct: false, explain: "Forkert — det er hele årsforbruget, ikke den optimale ordrestørrelse." },
+      { text: "8 stk", correct: false, explain: "Forkert — det er lageromkostningen pr. stk., ikke ordrestørrelsen." },
+    ],
+    reward: 60,
+  },
+};
+
+const SUPPLIERS = [
+  {
+    key: "reliable",
+    icon: "🚚",
+    name: "Pålidelig leverandør",
+    desc: "Stabile leverancer til tiden. Højere pris, men ingen risiko for tomme hylder.",
+    cost: 70,
+  },
+  {
+    key: "cheap",
+    icon: "💸",
+    name: "Billig leverandør",
+    desc: "Lav pris, men højere risiko for forsinkelser (klassisk TCO-afvejning: pris vs. leveringssikkerhed).",
+    cost: 35,
+  },
+  {
+    key: "sustainable",
+    icon: "🌱",
+    name: "Bæredygtig leverandør",
+    desc: "Dyrere indkøb, men styrker jeres omdømme (ESG) — I får en ekstra bonus ved dagens slutning.",
+    cost: 100,
+  },
+];
+
+const CUSTOMERS = [
+  {
+    key: "mixed",
+    icon: "⚖️",
+    name: "Blandede kunder",
+    desc: "Almindelig blanding af ordrer — standard størrelse, pris og frist.",
+    qtyMod: 1,
+    rewardMod: 1,
+    deadlineMod: 1,
+  },
+  {
+    key: "wholesale",
+    icon: "🏬",
+    name: "Storkunder",
+    desc: "Store ordrer med god tid, men lavere pris pr. styk (mængderabat).",
+    qtyMod: 1.6,
+    rewardMod: 0.75,
+    deadlineMod: 1.3,
+  },
+  {
+    key: "rush",
+    icon: "⚡",
+    name: "Akutkunder",
+    desc: "Små, hastende ordrer der betaler godt pr. styk — men med stram frist.",
+    qtyMod: 0.7,
+    rewardMod: 1.35,
+    deadlineMod: 0.65,
+  },
+];
+
 let audioCtx = null;
 function beep(freq, dur, type = "sine", vol = 0.15) {
   try {
@@ -382,55 +511,116 @@ function buildDock() {
   scene.add(pad);
 
   const truck = new THREE.Group();
-  const truckX = WORLD_MAX_X - 5;
+  const truckX = WORLD_MAX_X - 6;
   const wheelRadius = 0.65;
   const wheelTop = wheelRadius * 2 * 0.75; // visual ride height above axle center
   const chassisY = wheelTop + 0.15;
 
-  const cabMat = new THREE.MeshStandardMaterial({ color: 0xf2ede4, roughness: 0.4, metalness: 0.15 });
-  const glassMat = new THREE.MeshStandardMaterial({ color: 0x2a3d4d, roughness: 0.2, metalness: 0.6 });
+  const cabMat = new THREE.MeshStandardMaterial({ color: 0xc23b3b, roughness: 0.35, metalness: 0.25 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x1c2a35, roughness: 0.15, metalness: 0.7 });
   const trailerMat = new THREE.MeshStandardMaterial({ color: 0xffb648, roughness: 0.55 });
   const trailerSkirtMat = new THREE.MeshStandardMaterial({ color: 0x6b4a1f, roughness: 0.7 });
   const chassisMat = new THREE.MeshStandardMaterial({ color: 0x22262c, roughness: 0.7, metalness: 0.3 });
   const bumperMat = new THREE.MeshStandardMaterial({ color: 0x2a2f36, roughness: 0.5, metalness: 0.4 });
+  const tankMat = new THREE.MeshStandardMaterial({ color: 0x8a8f98, roughness: 0.4, metalness: 0.6 });
 
-  // chassis rail running the length of the truck, ties cab+trailer visually to the wheels
-  const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.35, 13.5), chassisMat);
-  chassis.position.set(truckX, chassisY, -1.5);
-  chassis.castShadow = true;
-  truck.add(chassis);
+  // ---- tractor unit ----
+  const cabH = 2.8;
+  const cabCenterZ = -9;
+  const tractorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.3, 5), chassisMat);
+  tractorFrame.position.set(truckX, chassisY, cabCenterZ + 0.8);
+  tractorFrame.castShadow = true;
+  truck.add(tractorFrame);
 
-  // cab
-  const cabH = 3;
-  const cab = new THREE.Mesh(new THREE.BoxGeometry(3, cabH, 3), cabMat);
-  cab.position.set(truckX, chassisY + cabH / 2, -7.2);
+  const cab = new THREE.Mesh(new THREE.BoxGeometry(2.9, cabH, 2.6), cabMat);
+  cab.position.set(truckX, chassisY + cabH / 2, cabCenterZ);
   cab.castShadow = true;
   truck.add(cab);
-  const windshield = new THREE.Mesh(new THREE.BoxGeometry(2.7, 1.1, 0.12), glassMat);
-  windshield.position.set(truckX, chassisY + cabH - 0.6, -5.68);
+  const roofFairing = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.5, 1), cabMat);
+  roofFairing.position.set(truckX, chassisY + cabH + 0.25, cabCenterZ + 0.5);
+  truck.add(roofFairing);
+  const windshield = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1, 0.1), glassMat);
+  windshield.position.set(truckX, chassisY + cabH - 0.55, cabCenterZ - 1.28);
+  windshield.rotation.x = -0.12;
   truck.add(windshield);
-  const bumper = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.4, 0.3), bumperMat);
-  bumper.position.set(truckX, chassisY - 0.1, -8.75);
+  const sideWin = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 1.4), glassMat);
+  sideWin.position.set(truckX - 1.46, chassisY + cabH - 0.6, cabCenterZ - 0.2);
+  truck.add(sideWin);
+  const sideWin2 = sideWin.clone();
+  sideWin2.position.x = truckX + 1.46;
+  truck.add(sideWin2);
+  const grille = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 0.15), new THREE.MeshStandardMaterial({ color: 0x1b1e24, roughness: 0.5, metalness: 0.5 }));
+  grille.position.set(truckX, chassisY + 1, cabCenterZ - 1.35);
+  truck.add(grille);
+  const bumper = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.35, 0.3), bumperMat);
+  bumper.position.set(truckX, chassisY + 0.15, cabCenterZ - 1.45);
   truck.add(bumper);
+  const headMat = new THREE.MeshStandardMaterial({ color: 0xfff2c0, emissive: 0xfff2c0, emissiveIntensity: 0.7 });
+  for (const side of [-1.15, 1.15]) {
+    const headlight = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.25, 0.06), headMat);
+    headlight.position.set(truckX + side, chassisY + 1.35, cabCenterZ - 1.45);
+    truck.add(headlight);
+  }
+  // fuel tank + exhaust stack, classic semi-truck detail
+  const fuelTank = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 1.6, 12), tankMat);
+  fuelTank.rotation.z = Math.PI / 2;
+  fuelTank.position.set(truckX - 1.35, chassisY - 0.05, cabCenterZ + 0.6);
+  truck.add(fuelTank);
+  const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 2.2, 8), new THREE.MeshStandardMaterial({ color: 0xc7ccd3, roughness: 0.3, metalness: 0.7 }));
+  stack.position.set(truckX - 1.35, chassisY + 1.8, cabCenterZ + 1.6);
+  truck.add(stack);
 
-  // trailer, two-tone with a darker skirt panel for visual break-up
+  // fifth-wheel coupling plate — visually bridges tractor to trailer
+  const hitchZ = cabCenterZ + 3.1;
+  const hitchPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.14, 12), chassisMat);
+  hitchPlate.position.set(truckX, chassisY + 0.15, hitchZ);
+  truck.add(hitchPlate);
+
+  // ---- trailer ----
   const trailerH = 3.2;
-  const trailerLen = 8;
+  const trailerLen = 9;
+  const trailerFrontZ = hitchZ + 0.3;
+  const trailerCenterZ = trailerFrontZ + trailerLen / 2;
+
+  const trailerFrame = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.3, trailerLen + 0.4), chassisMat);
+  trailerFrame.position.set(truckX, chassisY, trailerCenterZ);
+  trailerFrame.castShadow = true;
+  truck.add(trailerFrame);
+
   const trailer = new THREE.Mesh(new THREE.BoxGeometry(3.2, trailerH, trailerLen), trailerMat);
-  trailer.position.set(truckX, chassisY + trailerH / 2, 1.5);
+  trailer.position.set(truckX, chassisY + trailerH / 2, trailerCenterZ);
   trailer.castShadow = true;
   truck.add(trailer);
+  const trailerNose = new THREE.Mesh(new THREE.BoxGeometry(3.2, trailerH, 0.5), trailerSkirtMat);
+  trailerNose.position.set(truckX, chassisY + trailerH / 2, trailerFrontZ + 0.25);
+  truck.add(trailerNose);
   const skirt = new THREE.Mesh(new THREE.BoxGeometry(3.24, 0.5, trailerLen), trailerSkirtMat);
-  skirt.position.set(truckX, chassisY + 0.25, 1.5);
+  skirt.position.set(truckX, chassisY + 0.25, trailerCenterZ);
   truck.add(skirt);
   for (let i = -1; i <= 1; i++) {
     const rib = new THREE.Mesh(new THREE.BoxGeometry(0.06, trailerH - 0.4, trailerLen), new THREE.MeshStandardMaterial({ color: 0xe0a03a, roughness: 0.6 }));
-    rib.position.set(truckX + i * 1.05, chassisY + trailerH / 2 + 0.1, 1.5);
+    rib.position.set(truckX + i * 1.05, chassisY + trailerH / 2 + 0.1, trailerCenterZ);
     truck.add(rib);
   }
+  // rear doors + reflective strip
+  const doorSeam = new THREE.Mesh(new THREE.BoxGeometry(0.05, trailerH, 0.05), chassisMat);
+  doorSeam.position.set(truckX, chassisY + trailerH / 2, trailerFrontZ + trailerLen);
+  truck.add(doorSeam);
+  const reflectStrip = new THREE.Mesh(new THREE.BoxGeometry(3.22, 0.15, 0.02), new THREE.MeshStandardMaterial({ color: 0xd8342a, roughness: 0.4 }));
+  reflectStrip.position.set(truckX, chassisY + 0.9, trailerFrontZ + trailerLen);
+  truck.add(reflectStrip);
 
-  const wheelZs = [-8, -5.3, -0.5, 2.3, 5];
-  for (const wz of wheelZs) {
+  // landing legs (support the trailer nose when unhitched — reads as authentic detail)
+  for (const side of [-0.9, 0.9]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, chassisY - 0.1, 8), chassisMat);
+    leg.position.set(truckX + side, (chassisY - 0.1) / 2, trailerFrontZ + 0.6);
+    truck.add(leg);
+  }
+
+  // wheels: tractor axles clustered under the cab, trailer axles clustered at the rear
+  const tractorWheelZs = [cabCenterZ - 1.1, cabCenterZ + 1.2];
+  const trailerWheelZs = [trailerFrontZ + trailerLen - 2.6, trailerFrontZ + trailerLen - 1.7, trailerFrontZ + trailerLen - 0.8];
+  for (const wz of [...tractorWheelZs, ...trailerWheelZs]) {
     for (const side of [-1.55, 1.55]) {
       const wheel = makeWheelGroup(wheelRadius, 0.5, 0x111318, 0xb8bcc4);
       wheel.position.set(truckX + side, wheelRadius, wz);
@@ -621,7 +811,7 @@ function addFloatingText(x, y, z, text, color) {
 // ---------- Game state ----------
 let vehicleState;
 let carrying, money, timeLeft, doneCount, missedCount;
-let day, dayEarnings, dayDone, dayMissed, upgrades;
+let day, dayEarnings, dayDone, dayMissed, upgrades, staff, tasksDone, dayPlan;
 let activeOrders, orderIdCounter, running, lastTime, msgTimer, spawnCooldown;
 let floatingTexts;
 let beaconPhase = 0;
@@ -629,6 +819,9 @@ let keys = new Set();
 
 function upgradeValue(key) {
   return upgrades[key] === true;
+}
+function staffValue(key) {
+  return staff[key] === true;
 }
 function currentMaxSpeed() {
   return BASE_MAX_SPEED + (upgradeValue("speed") ? 5 : 0);
@@ -642,6 +835,22 @@ function currentMaxOrders() {
 function deadlineMultiplier() {
   return upgradeValue("deadline") ? 1.25 : 1;
 }
+function currentSpawnInterval() {
+  return staffValue("lagerLead") ? 2.5 : 4;
+}
+function currentSupplier() {
+  return SUPPLIERS.find((s) => s.key === dayPlan.supplier) || SUPPLIERS[0];
+}
+function currentCustomer() {
+  return CUSTOMERS.find((c) => c.key === dayPlan.customer) || CUSTOMERS[0];
+}
+function missedOrderPenalty() {
+  const base = staffValue("indkober") ? 5 : 10;
+  return dayPlan.supplier === "cheap" ? Math.round(base * 1.5) : base;
+}
+function salesMultiplier() {
+  return (staffValue("saelger") ? 1.15 : 1) * currentCustomer().rewardMod;
+}
 
 function resetRun() {
   money = 0;
@@ -649,6 +858,9 @@ function resetRun() {
   missedCount = 0;
   day = 1;
   upgrades = { speed: false, capacity: false, orderSlot: false, deadline: false };
+  staff = { lagerLead: false, kontorAssist: false, indkober: false, saelger: false };
+  tasksDone = { indkob: false, forhandling: false, jura: false, transport: false, mrp: false };
+  dayPlan = { supplier: "reliable", customer: "mixed" };
   dayTotalEl.textContent = TOTAL_DAYS;
 }
 
@@ -662,6 +874,10 @@ function startDay() {
   dayEarnings = 0;
   dayDone = 0;
   dayMissed = 0;
+  if (staffValue("kontorAssist")) {
+    money += 25;
+  }
+  money = Math.max(0, money - currentSupplier().cost);
   activeOrders = [];
   orderIdCounter = 1;
   keys = new Set();
@@ -687,8 +903,9 @@ function startDay() {
 function spawnOrder() {
   if (activeOrders.length >= currentMaxOrders()) return;
   const good = GOODS[Math.floor(Math.random() * GOODS.length)];
-  const qty = 1 + Math.floor(Math.random() * 3);
-  const deadline = (14 + qty * 6) * deadlineMultiplier();
+  const customer = currentCustomer();
+  const qty = Math.max(1, Math.round((1 + Math.floor(Math.random() * 3)) * customer.qtyMod));
+  const deadline = (14 + qty * 6) * deadlineMultiplier() * customer.deadlineMod;
   activeOrders.push({
     id: orderIdCounter++,
     type: good.type,
@@ -699,7 +916,7 @@ function spawnOrder() {
     remaining: qty,
     deadline,
     maxDeadline: deadline,
-    rewardPerItem: 25 + qty * 5,
+    rewardPerItem: Math.round((25 + qty * 5) * salesMultiplier()),
   });
 }
 
@@ -859,7 +1076,7 @@ function update(dt) {
   spawnCooldown -= dt;
   if (spawnCooldown <= 0 && activeOrders.length < currentMaxOrders()) {
     spawnOrder();
-    spawnCooldown = 4;
+    spawnCooldown = currentSpawnInterval();
   }
 
   for (const order of activeOrders) order.deadline -= dt;
@@ -867,7 +1084,7 @@ function update(dt) {
   if (missed.length > 0) {
     missedCount += missed.length;
     dayMissed += missed.length;
-    money = Math.max(0, money - missed.length * 10);
+    money = Math.max(0, money - missed.length * missedOrderPenalty());
     activeOrders = activeOrders.filter((o) => o.deadline > 0);
     showMessage("En ordre nåede ikke frem til tiden... 😬");
     beep(180, 0.2, "sawtooth", 0.1);
@@ -1001,17 +1218,156 @@ function renderShop() {
       upgrades[key] = true;
       beep(880, 0.15, "sine", 0.2);
       renderShop();
+      renderStaff();
+    });
+  });
+
+  renderStaff();
+  renderPlanning();
+  for (const key of Object.keys(TASKS)) renderTask(key);
+}
+
+const staffListEl = document.getElementById("staffList");
+const supplierListEl = document.getElementById("supplierList");
+const customerListEl = document.getElementById("customerList");
+
+function renderPlanning() {
+  document.getElementById("planDayNum").textContent = Math.min(day + 1, TOTAL_DAYS);
+
+  supplierListEl.innerHTML = "";
+  for (const s of SUPPLIERS) {
+    const card = document.createElement("button");
+    card.className = "planCard" + (dayPlan.supplier === s.key ? " selected" : "");
+    card.innerHTML = `<div class="planName">${s.icon} ${s.name} — ${s.cost} kr</div><div class="planDesc">${s.desc}</div>`;
+    card.addEventListener("click", () => {
+      dayPlan.supplier = s.key;
+      beep(600, 0.08, "triangle");
+      renderPlanning();
+    });
+    supplierListEl.appendChild(card);
+  }
+
+  customerListEl.innerHTML = "";
+  for (const c of CUSTOMERS) {
+    const card = document.createElement("button");
+    card.className = "planCard" + (dayPlan.customer === c.key ? " selected" : "");
+    card.innerHTML = `<div class="planName">${c.icon} ${c.name}</div><div class="planDesc">${c.desc}</div>`;
+    card.addEventListener("click", () => {
+      dayPlan.customer = c.key;
+      beep(600, 0.08, "triangle");
+      renderPlanning();
+    });
+    customerListEl.appendChild(card);
+  }
+}
+
+function renderStaff() {
+  document.getElementById("shopMoney").textContent = money;
+  staffListEl.innerHTML = "";
+  for (const s of STAFF) {
+    const hired = staffValue(s.key);
+    const card = document.createElement("div");
+    card.className = "upgradeCard" + (hired ? " owned" : "");
+    card.innerHTML = `
+      <div class="upgradeIcon">${s.icon}</div>
+      <div class="upgradeName">${s.name}</div>
+      <div class="upgradeDesc">${s.desc}</div>
+      <button ${hired || money < s.cost ? "disabled" : ""} data-staff="${s.key}">
+        ${hired ? "Ansat ✅" : `Ansæt – ${s.cost} kr`}
+      </button>
+    `;
+    staffListEl.appendChild(card);
+  }
+
+  staffListEl.querySelectorAll("button[data-staff]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const key = btn.getAttribute("data-staff");
+      const role = STAFF.find((s) => s.key === key);
+      if (staffValue(key) || money < role.cost) return;
+      money -= role.cost;
+      staff[key] = true;
+      beep(880, 0.15, "sine", 0.2);
+      renderShop();
+      renderStaff();
     });
   });
 }
 
+function renderTask(key) {
+  const task = TASKS[key];
+  const panel = document.getElementById(`panel-${key}`);
+  const done = tasksDone[key];
+
+  panel.innerHTML = `
+    <h2>${task.icon} ${task.title}</h2>
+    <p class="taskScenario">${task.scenario}</p>
+    <div class="taskOptions"></div>
+  `;
+
+  const optionsEl = panel.querySelector(".taskOptions");
+  task.options.forEach((opt) => {
+    const btn = document.createElement("button");
+    btn.className = "taskOption";
+    btn.textContent = opt.text;
+    btn.disabled = done;
+    if (done && opt.correct) btn.classList.add("correct");
+    btn.addEventListener("click", () => {
+      if (tasksDone[key]) return;
+      optionsEl.querySelectorAll("button").forEach((b) => (b.disabled = true));
+      btn.classList.add(opt.correct ? "correct" : "wrong");
+
+      const explain = document.createElement("div");
+      explain.className = "taskExplain " + (opt.correct ? "good" : "bad");
+      explain.textContent = opt.explain;
+      panel.appendChild(explain);
+
+      if (opt.correct) {
+        tasksDone[key] = true;
+        money += task.reward;
+        beep(1000, 0.18, "sine", 0.18);
+        renderShop();
+        renderStaff();
+      } else {
+        beep(180, 0.2, "sawtooth", 0.1);
+      }
+    });
+    optionsEl.appendChild(btn);
+  });
+
+  if (done) {
+    const correctOpt = task.options.find((o) => o.correct);
+    const explain = document.createElement("div");
+    explain.className = "taskExplain good";
+    explain.textContent = correctOpt.explain;
+    panel.appendChild(explain);
+    const bonus = document.createElement("p");
+    bonus.className = "taskDone";
+    bonus.textContent = `✅ Løst — I fik ${task.reward} kr i kassen.`;
+    panel.appendChild(bonus);
+  }
+}
+
+document.getElementById("officeMenu").addEventListener("click", (e) => {
+  const btn = e.target.closest(".officeNavBtn[data-panel]");
+  if (!btn) return;
+  document.querySelectorAll(".officeNavBtn").forEach((b) => b.classList.remove("active"));
+  btn.classList.add("active");
+  document.querySelectorAll(".officePanel").forEach((p) => p.classList.add("hidden"));
+  document.getElementById(`panel-${btn.dataset.panel}`).classList.remove("hidden");
+});
+
 function endDay() {
   running = false;
+  if (dayPlan.supplier === "sustainable") {
+    money += 30;
+    dayEarnings += 30;
+  }
   if (day >= TOTAL_DAYS) {
     endRun();
     return;
   }
   renderShop();
+  renderPlanning();
   showScreen("shop");
 }
 
