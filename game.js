@@ -296,6 +296,10 @@ function makeWheelGroup(radius, width, tireColor, hubColor) {
 // ---------- Three.js scene ----------
 let renderer, scene, camera;
 let vehicle, forkGroup, carriedMeshes = [];
+let character, legL, legR;
+let playerMode = "foot";
+let footPhase = 0;
+let footHeading = 0;
 let wheels = [];
 let dockGlowMat, shelfGlowMats = {};
 let dustPool = [];
@@ -369,6 +373,7 @@ function initScene() {
   for (const s of SHELVES) buildShelf(s);
   buildDock();
   buildVehicle();
+  buildCharacter();
 
   labelsLayer = document.createElement("div");
   labelsLayer.id = "labelsLayer";
@@ -630,6 +635,63 @@ function buildDock() {
   scene.add(truck);
 }
 
+function buildCharacter() {
+  character = new THREE.Group();
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0xe8b48a, roughness: 0.7 });
+  const shirtMat = new THREE.MeshStandardMaterial({ color: 0x2f6fb0, roughness: 0.6 });
+  const pantsMat = new THREE.MeshStandardMaterial({ color: 0x2a2f36, roughness: 0.7 });
+  const vestMat = new THREE.MeshStandardMaterial({ color: 0xffb648, roughness: 0.6 });
+  const shoeMat = new THREE.MeshStandardMaterial({ color: 0x1b1e24, roughness: 0.8 });
+
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.28), shirtMat);
+  torso.position.y = 1.05;
+  torso.castShadow = true;
+  character.add(torso);
+
+  const vest = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.4, 0.3), vestMat);
+  vest.position.y = 1.1;
+  character.add(vest);
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.06, 0.31), new THREE.MeshStandardMaterial({ color: 0xfff2c0, roughness: 0.5 }));
+  stripe.position.y = 1.25;
+  character.add(stripe);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), skinMat);
+  head.position.y = 1.55;
+  head.castShadow = true;
+  character.add(head);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.21, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x1c2128, roughness: 0.6 }));
+  cap.position.y = 1.6;
+  character.add(cap);
+
+  legL = new THREE.Group();
+  legL.position.set(-0.13, 0.75, 0);
+  const legLMesh = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.7, 0.2), pantsMat);
+  legLMesh.position.y = -0.35;
+  legLMesh.castShadow = true;
+  legL.add(legLMesh);
+  const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.12, 0.28), shoeMat);
+  shoeL.position.set(0, -0.7, 0.04);
+  legL.add(shoeL);
+  character.add(legL);
+
+  legR = new THREE.Group();
+  legR.position.set(0.13, 0.75, 0);
+  const legRMesh = legLMesh.clone();
+  legR.add(legRMesh);
+  const shoeR = shoeL.clone();
+  legR.add(shoeR);
+  character.add(legR);
+
+  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.5, 0.16), shirtMat);
+  armL.position.set(-0.32, 1.05, 0);
+  character.add(armL);
+  const armR = armL.clone();
+  armR.position.x = 0.32;
+  character.add(armR);
+
+  scene.add(character);
+}
+
 function buildVehicle() {
   vehicle = new THREE.Group();
   const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf5c518, roughness: 0.35, metalness: 0.4 });
@@ -867,10 +929,21 @@ function resetRun() {
   dayPlan = { supplier: "reliable", customer: "mixed" };
 }
 
+function activeObj() {
+  return playerMode === "truck" ? vehicle : character;
+}
+
 function startDay() {
   vehicleState = { heading: 0, speed: 0 };
   vehicle.position.set(0, 0, 0);
   vehicle.rotation.y = 0;
+  playerMode = "foot";
+  character.position.set(3.2, 0, 1.5);
+  character.rotation.y = 0;
+  footHeading = 0;
+  character.visible = true;
+  legL.rotation.x = 0;
+  legR.rotation.x = 0;
   carrying = [];
   updateCarriedVisual();
   dayEarnings = 0;
@@ -928,32 +1001,76 @@ function showMessage(text) {
 }
 
 function updateCarriedVisual() {
-  for (const m of carriedMeshes) vehicle.remove(m);
+  for (const m of carriedMeshes) {
+    if (m.parent) m.parent.remove(m);
+  }
   carriedMeshes = [];
+  const holder = activeObj();
+  const onFoot = playerMode === "foot";
   carrying.forEach((type, i) => {
     const good = GOODS.find((g) => g.type === type);
     const mat = new THREE.MeshStandardMaterial({ color: good.color, roughness: 0.6 });
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), mat);
-    mesh.position.set(i === 0 ? -0.25 : 0.25, 0.85, 1.7);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(onFoot ? 0.32 : 0.6, onFoot ? 0.32 : 0.6, onFoot ? 0.32 : 0.6), mat);
+    if (onFoot) {
+      mesh.position.set(i === 0 ? -0.22 : 0.22, 1.35, 0.24);
+    } else {
+      mesh.position.set(i === 0 ? -0.25 : 0.25, 0.85, 1.7);
+    }
     mesh.castShadow = true;
-    vehicle.add(mesh);
+    holder.add(mesh);
     carriedMeshes.push(mesh);
   });
 }
 
 function inZone(zone) {
-  const x = vehicle.position.x;
-  const z = vehicle.position.z;
-  return x >= zone.zoneMinX && x <= zone.zoneMaxX && z >= zone.zoneMinZ && z <= zone.zoneMaxZ;
+  const p = activeObj().position;
+  return p.x >= zone.zoneMinX && p.x <= zone.zoneMaxX && p.z >= zone.zoneMinZ && p.z <= zone.zoneMaxZ;
+}
+
+function activeCapacity() {
+  return playerMode === "truck" ? currentCapacity() : 1;
+}
+
+function toggleVehicle() {
+  if (playerMode === "foot") {
+    const dx = character.position.x - vehicle.position.x;
+    const dz = character.position.z - vehicle.position.z;
+    if (Math.hypot(dx, dz) > 3.2) {
+      showMessage("Gå hen til gaffeltrucken for at sætte dig ind i den (E).");
+      return;
+    }
+    playerMode = "truck";
+    vehicleState.speed = 0;
+    character.visible = false;
+    updateCarriedVisual();
+    showMessage("Du sidder i gaffeltrucken. Tryk E for at stige ud igen.");
+  } else {
+    playerMode = "foot";
+    const side = vehicleState.heading + Math.PI / 2;
+    character.position.set(
+      vehicle.position.x + Math.sin(side) * 2.2,
+      0,
+      vehicle.position.z + Math.cos(side) * 2.2
+    );
+    character.position.x = Math.max(WORLD_MIN_X, Math.min(WORLD_MAX_X, character.position.x));
+    character.position.z = Math.max(WORLD_MIN_Z, Math.min(WORLD_MAX_Z, character.position.z));
+    character.rotation.y = vehicleState.heading;
+    footHeading = vehicleState.heading;
+    character.visible = true;
+    updateCarriedVisual();
+    showMessage("Du er gået ud af trucken. Tryk E for at sætte dig ind igen.");
+  }
+  beep(500, 0.1, "triangle");
 }
 
 function handleAction() {
   const atShelf = SHELVES.find((s) => inZone(s));
   const atDock = inZone(DOCK);
+  const pos = activeObj().position;
 
   if (atShelf) {
-    if (carrying.length >= currentCapacity()) {
-      showMessage("Gaflen er fuld! Kør varerne til lastbilen.");
+    if (carrying.length >= activeCapacity()) {
+      showMessage(playerMode === "foot" ? "Du kan ikke bære mere — sæt dig ind i trucken (E) for at tage flere ad gangen." : "Gaflen er fuld! Kør varerne til lastbilen.");
       return;
     }
     const order = activeOrders.find((o) => o.type === atShelf.type && o.remaining > 0);
@@ -963,7 +1080,7 @@ function handleAction() {
     }
     carrying.push(atShelf.type);
     updateCarriedVisual();
-    addFloatingText(vehicle.position.x, 2.4, vehicle.position.z, `+${atShelf.icon}`, "#fff");
+    addFloatingText(pos.x, 2.4, pos.z, `+${atShelf.icon}`, "#fff");
     beep(520, 0.1, "triangle");
     showMessage(`Hentede ${atShelf.icon} ${atShelf.label}.`);
     return;
@@ -987,13 +1104,13 @@ function handleAction() {
     order.remaining -= 1;
     money += order.rewardPerItem;
     dayEarnings += order.rewardPerItem;
-    addFloatingText(vehicle.position.x, 2.4, vehicle.position.z, `+${order.rewardPerItem} kr`, "#ffe08a");
+    addFloatingText(pos.x, 2.4, pos.z, `+${order.rewardPerItem} kr`, "#ffe08a");
     beep(760, 0.12, "sine");
     if (order.remaining <= 0) {
       doneCount += 1;
       dayDone += 1;
       activeOrders = activeOrders.filter((o) => o.id !== order.id);
-      spawnConfetti3D(vehicle.position.x, vehicle.position.z);
+      spawnConfetti3D(pos.x, pos.z);
       beep(1000, 0.18, "sine", 0.18);
       showMessage("Ordre fuldført! 🎉");
       spawnOrder();
@@ -1003,10 +1120,10 @@ function handleAction() {
     return;
   }
 
-  showMessage("Kør hen til en hylde eller lastbilen.");
+  showMessage("Gå/kør hen til en hylde eller lastbilen.");
 }
 
-function updateVehicle(dt) {
+function updateTruck(dt) {
   const accel = 9;
   const drag = 6;
   const maxSpeed = currentMaxSpeed();
@@ -1063,16 +1180,60 @@ function updateVehicle(dt) {
   camera.updateProjectionMatrix();
 }
 
+function updateFoot(dt) {
+  const footSpeed = 6.5;
+  let dx = 0;
+  let dz = 0;
+  if (keys.has("ArrowUp") || keys.has("KeyW")) dz -= 1;
+  if (keys.has("ArrowDown") || keys.has("KeyS")) dz += 1;
+  if (keys.has("ArrowLeft") || keys.has("KeyA")) dx -= 1;
+  if (keys.has("ArrowRight") || keys.has("KeyD")) dx += 1;
+
+  const moving = dx !== 0 || dz !== 0;
+  if (moving) {
+    const len = Math.hypot(dx, dz);
+    dx /= len;
+    dz /= len;
+    character.position.x += dx * footSpeed * dt;
+    character.position.z += dz * footSpeed * dt;
+    footHeading = Math.atan2(dx, dz);
+    character.rotation.y = footHeading;
+    footPhase += dt * 9;
+    const swing = Math.sin(footPhase) * 0.5;
+    legL.rotation.x = swing;
+    legR.rotation.x = -swing;
+  } else {
+    legL.rotation.x *= 0.8;
+    legR.rotation.x *= 0.8;
+  }
+
+  character.position.x = Math.max(WORLD_MIN_X, Math.min(WORLD_MAX_X, character.position.x));
+  character.position.z = Math.max(WORLD_MIN_Z, Math.min(WORLD_MAX_Z, character.position.z));
+
+  speedoFillEl.style.width = "0%";
+  camera.fov = 62;
+  camera.updateProjectionMatrix();
+}
+
+function activeHeading() {
+  return playerMode === "truck" ? vehicleState.heading : footHeading;
+}
+
 function updateCamera(dt) {
-  const forward = new THREE.Vector3(Math.sin(vehicleState.heading), 0, Math.cos(vehicleState.heading));
-  const desired = vehicle.position.clone().addScaledVector(forward, -11).add(new THREE.Vector3(0, 6.5, 0));
-  camera.position.lerp(desired, Math.min(1, dt * 4));
-  const lookTarget = vehicle.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+  const heading = activeHeading();
+  const forward = new THREE.Vector3(Math.sin(heading), 0, Math.cos(heading));
+  const back = playerMode === "truck" ? -11 : -6.5;
+  const up = playerMode === "truck" ? 6.5 : 3.6;
+  const pos = activeObj().position;
+  const desired = pos.clone().addScaledVector(forward, back).add(new THREE.Vector3(0, up, 0));
+  camera.position.lerp(desired, Math.min(1, dt * 5));
+  const lookTarget = pos.clone().add(new THREE.Vector3(0, 1.2, 0));
   camera.lookAt(lookTarget);
 }
 
 function update(dt) {
-  updateVehicle(dt);
+  if (playerMode === "truck") updateTruck(dt);
+  else updateFoot(dt);
   updateCamera(dt);
 
   spawnCooldown -= dt;
@@ -1510,6 +1671,10 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
     e.preventDefault();
     if (running) handleAction();
+    return;
+  }
+  if (e.code === "KeyE") {
+    if (running) toggleVehicle();
     return;
   }
   keys.add(e.code);
