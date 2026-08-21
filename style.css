@@ -136,6 +136,49 @@ button:disabled {
   border: 1px solid rgba(255,255,255,0.08);
 }
 
+.hudBtn {
+  cursor: pointer;
+  color: var(--text);
+  margin: 0;
+  box-shadow: none;
+}
+
+.hudBtn:hover {
+  background: linear-gradient(180deg, var(--bg-panel-2) 0%, var(--bg-panel) 100%);
+  transform: none;
+}
+
+.menuButtons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btnSecondary {
+  background: transparent;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+.btnSecondary:hover {
+  background: rgba(255,182,72,0.12);
+}
+
+.saveInfo {
+  color: var(--text-soft);
+  font-size: 0.9em;
+  margin-top: 10px;
+}
+
+.officeFooter {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
 #gameArea {
   display: flex;
   gap: 18px;

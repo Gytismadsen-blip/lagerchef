@@ -8,18 +8,20 @@ const screens = {
 };
 
 const startBtn = document.getElementById("startBtn");
+const continueGameBtn = document.getElementById("continueGameBtn");
+const saveInfoEl = document.getElementById("saveInfo");
 const continueBtn = document.getElementById("continueBtn");
+const saveBtn = document.getElementById("saveBtn");
 const restartBtn = document.getElementById("restartBtn");
+const endDayBtn = document.getElementById("endDayBtn");
 const messageEl = document.getElementById("message");
 const orderListEl = document.getElementById("orderList");
 const upgradeListEl = document.getElementById("upgradeList");
 const speedoFillEl = document.getElementById("speedoFill");
 
 const moneyEl = document.getElementById("money");
-const timeLeftEl = document.getElementById("timeLeft");
 const doneCountEl = document.getElementById("doneCount");
 const dayNumEl = document.getElementById("dayNum");
-const dayTotalEl = document.getElementById("dayTotal");
 
 const GOODS = [
   { type: "elektronik", label: "Elektronik", icon: "📱", color: 0x3b82c4 },
@@ -55,8 +57,6 @@ const DOCK = {
   zoneMaxZ: WORLD_MAX_Z,
 };
 
-const TOTAL_DAYS = 4;
-const DAY_LENGTH = 60;
 const BASE_MAX_SPEED = 16;
 const BASE_MAX_ORDERS = 3;
 
@@ -810,7 +810,7 @@ function addFloatingText(x, y, z, text, color) {
 
 // ---------- Game state ----------
 let vehicleState;
-let carrying, money, timeLeft, doneCount, missedCount;
+let carrying, money, doneCount, missedCount, daysWithZeroMoney;
 let day, dayEarnings, dayDone, dayMissed, upgrades, staff, tasksDone, dayPlan;
 let activeOrders, orderIdCounter, running, lastTime, msgTimer, spawnCooldown;
 let floatingTexts;
@@ -856,12 +856,15 @@ function resetRun() {
   money = 0;
   doneCount = 0;
   missedCount = 0;
-  day = 1;
+  day = 0;
+  dayEarnings = 0;
+  dayDone = 0;
+  dayMissed = 0;
+  daysWithZeroMoney = 0;
   upgrades = { speed: false, capacity: false, orderSlot: false, deadline: false };
   staff = { lagerLead: false, kontorAssist: false, indkober: false, saelger: false };
   tasksDone = { indkob: false, forhandling: false, jura: false, transport: false, mrp: false };
   dayPlan = { supplier: "reliable", customer: "mixed" };
-  dayTotalEl.textContent = TOTAL_DAYS;
 }
 
 function startDay() {
@@ -870,7 +873,6 @@ function startDay() {
   vehicle.rotation.y = 0;
   carrying = [];
   updateCarriedVisual();
-  timeLeft = DAY_LENGTH;
   dayEarnings = 0;
   dayDone = 0;
   dayMissed = 0;
@@ -1125,14 +1127,9 @@ function update(dt) {
   dockGlowMat.emissive.set(dockInRange ? 0x6fca6f : 0x000000);
   dockGlowMat.emissiveIntensity = dockInRange ? 0.5 : 0;
 
-  timeLeft -= dt;
   if (msgTimer > 0) {
     msgTimer -= dt;
     if (msgTimer <= 0) messageEl.textContent = "";
-  }
-
-  if (timeLeft <= 0) {
-    endDay();
   }
 }
 
@@ -1174,7 +1171,6 @@ function loop(timestamp) {
   renderOrders();
 
   moneyEl.textContent = money;
-  timeLeftEl.textContent = Math.max(0, Math.ceil(timeLeft));
   doneCountEl.textContent = doneCount;
 
   requestAnimationFrame(loop);
@@ -1186,7 +1182,8 @@ function showScreen(name) {
 }
 
 function renderShop() {
-  document.getElementById("shopDayJustDone").textContent = day;
+  document.getElementById("officeTitle").textContent =
+    day === 0 ? "🏢 Kontor — klar til at starte" : `🏢 Kontor — Dag ${day} er slut`;
   document.getElementById("dayEarnings").textContent = dayEarnings;
   document.getElementById("dayDone").textContent = dayDone;
   document.getElementById("dayMissed").textContent = dayMissed;
@@ -1232,7 +1229,7 @@ const supplierListEl = document.getElementById("supplierList");
 const customerListEl = document.getElementById("customerList");
 
 function renderPlanning() {
-  document.getElementById("planDayNum").textContent = Math.min(day + 1, TOTAL_DAYS);
+  document.getElementById("planDayNum").textContent = day + 1;
 
   supplierListEl.innerHTML = "";
   for (const s of SUPPLIERS) {
@@ -1362,41 +1359,134 @@ function endDay() {
     money += 30;
     dayEarnings += 30;
   }
-  if (day >= TOTAL_DAYS) {
-    endRun();
+  daysWithZeroMoney = money <= 0 ? daysWithZeroMoney + 1 : 0;
+
+  if (daysWithZeroMoney >= 2) {
+    endRun(true);
     return;
   }
+  saveGame();
   renderShop();
   renderPlanning();
   showScreen("shop");
 }
 
-function endRun() {
+function endRun(bankrupt) {
   const totalOrders = doneCount + missedCount;
   const rate = totalOrders === 0 ? 100 : Math.round((doneCount / totalOrders) * 100);
 
+  document.getElementById("finalDay").textContent = day;
   document.getElementById("finalMoney").textContent = money;
   document.getElementById("finalDone").textContent = doneCount;
   document.getElementById("finalMissed").textContent = missedCount;
   document.getElementById("finalRate").textContent = rate;
 
+  const titleEl = document.getElementById("endTitle");
   const ratingEl = document.getElementById("rating");
-  if (rate >= 80) {
+  if (bankrupt) {
+    titleEl.textContent = "💥 Konkurs!";
+    ratingEl.textContent = `I løb tør for penge to dage i træk og måtte lukke virksomheden. I nåede dag ${day}.`;
+  } else if (rate >= 80) {
+    titleEl.textContent = "🏆 Spillet slut";
     ratingEl.textContent = "🌟 Fantastisk logistikchef!";
   } else if (rate >= 50) {
+    titleEl.textContent = "🏆 Spillet slut";
     ratingEl.textContent = "👍 Godt arbejde!";
   } else {
+    titleEl.textContent = "🏆 Spillet slut";
     ratingEl.textContent = "💪 Der er plads til forbedring næste gang.";
   }
 
+  clearSave();
   showScreen("end");
 }
 
+const SAVE_KEY = "lagerchef_save_v1";
+
+function saveGame() {
+  const data = { day, money, doneCount, missedCount, daysWithZeroMoney, upgrades, staff, tasksDone, dayPlan };
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch (e) {
+    // storage unavailable, ignore
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    day = data.day;
+    money = data.money;
+    doneCount = data.doneCount;
+    missedCount = data.missedCount;
+    daysWithZeroMoney = data.daysWithZeroMoney || 0;
+    upgrades = data.upgrades;
+    staff = data.staff;
+    tasksDone = data.tasksDone;
+    dayPlan = data.dayPlan;
+    dayEarnings = 0;
+    dayDone = 0;
+    dayMissed = 0;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function clearSave() {
+  try {
+    localStorage.removeItem(SAVE_KEY);
+  } catch (e) {
+    // ignore
+  }
+}
+
+function hasSave() {
+  try {
+    return !!localStorage.getItem(SAVE_KEY);
+  } catch (e) {
+    return false;
+  }
+}
+
+function refreshStartScreen() {
+  if (hasSave()) {
+    continueGameBtn.classList.remove("hidden");
+    saveInfoEl.classList.remove("hidden");
+    const raw = JSON.parse(localStorage.getItem(SAVE_KEY));
+    saveInfoEl.textContent = `Gemt spil fundet: Dag ${raw.day}, ${raw.money} kr i kassen.`;
+  } else {
+    continueGameBtn.classList.add("hidden");
+    saveInfoEl.classList.add("hidden");
+  }
+}
+
 initScene();
+refreshStartScreen();
 
 startBtn.addEventListener("click", () => {
   resetRun();
-  startDay();
+  showScreen("shop");
+  renderShop();
+  renderPlanning();
+});
+
+continueGameBtn.addEventListener("click", () => {
+  if (!loadGame()) return;
+  showScreen("shop");
+  renderShop();
+  renderPlanning();
+});
+
+saveBtn.addEventListener("click", () => {
+  saveGame();
+  beep(700, 0.1, "sine", 0.15);
+  saveBtn.textContent = "✅ Gemt!";
+  setTimeout(() => {
+    saveBtn.textContent = "💾 Gem spil";
+  }, 1200);
 });
 
 continueBtn.addEventListener("click", () => {
@@ -1404,9 +1494,16 @@ continueBtn.addEventListener("click", () => {
   startDay();
 });
 
+endDayBtn.addEventListener("click", () => {
+  if (running) endDay();
+});
+
 restartBtn.addEventListener("click", () => {
+  clearSave();
   resetRun();
-  startDay();
+  showScreen("shop");
+  renderShop();
+  renderPlanning();
 });
 
 window.addEventListener("keydown", (e) => {

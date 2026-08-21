@@ -21,19 +21,23 @@
       <div class="rule"><span>⬆️⬇️</span> Kør frem / bak</div>
       <div class="rule"><span>⬅️➡️</span> Drej gaffeltrucken</div>
       <div class="rule"><span>MELLEMRUM</span> Hent varen / lever den</div>
-      <div class="rule"><span>💰</span> Brug pengene på opgraderinger mellem dagene</div>
+      <div class="rule"><span>💰</span> Byg virksomheden op, dag for dag — spil til du går konkurs</div>
     </div>
 
-    <button id="startBtn" class="btnPrimary">Start dag 1</button>
+    <div class="menuButtons">
+      <button id="startBtn" class="btnPrimary">🆕 Nyt spil</button>
+      <button id="continueGameBtn" class="btnPrimary btnSecondary hidden">▶️ Fortsæt spil</button>
+    </div>
+    <p id="saveInfo" class="saveInfo hidden"></p>
   </div>
 </div>
 
 <div id="gameScreen" class="screen hidden">
   <div id="hud">
-    <div class="hudBox">📅 Dag <span id="dayNum">1</span>/<span id="dayTotal">4</span></div>
+    <div class="hudBox">📅 Dag <span id="dayNum">1</span></div>
     <div class="hudBox">💰 <span id="money">0</span> kr</div>
-    <div class="hudBox">⏱️ <span id="timeLeft">45</span> sek</div>
     <div class="hudBox">✅ <span id="doneCount">0</span> leveret</div>
+    <button id="endDayBtn" class="hudBox hudBtn">🏁 Afslut dagen</button>
   </div>
 
   <div id="gameArea">
@@ -52,7 +56,7 @@
 
 <div id="shopScreen" class="screen hidden">
   <div class="card officeCard">
-    <h1>🏢 Kontor — Dag <span id="shopDayJustDone">1</span> er slut!</h1>
+    <h1 id="officeTitle">🏢 Kontor</h1>
     <div class="dayResults">
       <p>💰 Tjent i dag: <span id="dayEarnings">0</span> kr</p>
       <p>✅ Leveret: <span id="dayDone">0</span> &nbsp; ❌ Misset: <span id="dayMissed">0</span></p>
@@ -97,21 +101,25 @@
       </div>
     </div>
 
-    <button id="continueBtn" class="btnPrimary">Fortsæt til dag <span id="nextDayNum">2</span></button>
+    <div class="officeFooter">
+      <button id="saveBtn" class="btnPrimary btnSecondary">💾 Gem spil</button>
+      <button id="continueBtn" class="btnPrimary">Fortsæt til dag <span id="nextDayNum">2</span></button>
+    </div>
   </div>
 </div>
 
 <div id="endScreen" class="screen hidden">
   <div class="card">
-    <h1>🏆 Ugen er slut!</h1>
+    <h1 id="endTitle">💥 Konkurs!</h1>
     <div class="results">
+      <p>📅 I holdt til dag <span id="finalDay">1</span></p>
       <p>💰 Samlet omsætning: <span id="finalMoney">0</span> kr</p>
       <p>✅ Ordrer leveret: <span id="finalDone">0</span></p>
       <p>❌ Ordrer misset: <span id="finalMissed">0</span></p>
       <p>📈 Leveringssikkerhed: <span id="finalRate">0</span>%</p>
     </div>
     <p id="rating"></p>
-    <button id="restartBtn" class="btnPrimary">Spil igen</button>
+    <button id="restartBtn" class="btnPrimary">Start nyt spil</button>
   </div>
 </div>
 
