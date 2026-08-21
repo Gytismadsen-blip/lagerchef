@@ -1,3 +1,6 @@
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
 const canvas = document.getElementById("canvas");
 
 const screens = {
@@ -296,9 +299,9 @@ function makeWheelGroup(radius, width, tireColor, hubColor) {
 // ---------- Three.js scene ----------
 let renderer, scene, camera;
 let vehicle, forkGroup, carriedMeshes = [];
-let character, legL, legR;
+let character;
+let characterMixer, characterActions = {}, currentCharacterAction = null;
 let playerMode = "foot";
-let footPhase = 0;
 let footHeading = 0;
 let wheels = [];
 let dockGlowMat, shelfGlowMats = {};
@@ -306,7 +309,7 @@ let dustPool = [];
 let confettiPool = [];
 let labelsLayer, floatingLayer;
 
-function initScene() {
+async function initScene() {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(canvas.width, canvas.height, false);
@@ -371,9 +374,8 @@ function initScene() {
 
   buildPillarsAndLights(wallH);
   for (const s of SHELVES) buildShelf(s);
-  buildDock();
   buildVehicle();
-  buildCharacter();
+  await Promise.all([buildDock(), buildCharacter()]);
 
   labelsLayer = document.createElement("div");
   labelsLayer.id = "labelsLayer";
@@ -501,7 +503,7 @@ function buildShelf(s) {
   scene.add(group);
 }
 
-function buildDock() {
+async function buildDock() {
   const padGeo = new THREE.PlaneGeometry(DOCK.zoneMaxX - DOCK.zoneMinX, DOCK.zoneMaxZ - DOCK.zoneMinZ);
   dockGlowMat = new THREE.MeshStandardMaterial({
     color: 0x3d4652,
@@ -515,181 +517,73 @@ function buildDock() {
   pad.receiveShadow = true;
   scene.add(pad);
 
-  const truck = new THREE.Group();
   const truckX = WORLD_MAX_X - 6;
-  const wheelRadius = 0.65;
-  const wheelTop = wheelRadius * 2 * 0.75; // visual ride height above axle center
-  const chassisY = wheelTop + 0.15;
-
-  const cabMat = new THREE.MeshStandardMaterial({ color: 0xc23b3b, roughness: 0.35, metalness: 0.25 });
-  const glassMat = new THREE.MeshStandardMaterial({ color: 0x1c2a35, roughness: 0.15, metalness: 0.7 });
-  const trailerMat = new THREE.MeshStandardMaterial({ color: 0xffb648, roughness: 0.55 });
-  const trailerSkirtMat = new THREE.MeshStandardMaterial({ color: 0x6b4a1f, roughness: 0.7 });
-  const chassisMat = new THREE.MeshStandardMaterial({ color: 0x22262c, roughness: 0.7, metalness: 0.3 });
-  const bumperMat = new THREE.MeshStandardMaterial({ color: 0x2a2f36, roughness: 0.5, metalness: 0.4 });
-  const tankMat = new THREE.MeshStandardMaterial({ color: 0x8a8f98, roughness: 0.4, metalness: 0.6 });
-
-  // ---- tractor unit ----
-  const cabH = 2.8;
-  const cabCenterZ = -9;
-  const tractorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.3, 5), chassisMat);
-  tractorFrame.position.set(truckX, chassisY, cabCenterZ + 0.8);
-  tractorFrame.castShadow = true;
-  truck.add(tractorFrame);
-
-  const cab = new THREE.Mesh(new THREE.BoxGeometry(2.9, cabH, 2.6), cabMat);
-  cab.position.set(truckX, chassisY + cabH / 2, cabCenterZ);
-  cab.castShadow = true;
-  truck.add(cab);
-  const roofFairing = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.5, 1), cabMat);
-  roofFairing.position.set(truckX, chassisY + cabH + 0.25, cabCenterZ + 0.5);
-  truck.add(roofFairing);
-  const windshield = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1, 0.1), glassMat);
-  windshield.position.set(truckX, chassisY + cabH - 0.55, cabCenterZ - 1.28);
-  windshield.rotation.x = -0.12;
-  truck.add(windshield);
-  const sideWin = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 1.4), glassMat);
-  sideWin.position.set(truckX - 1.46, chassisY + cabH - 0.6, cabCenterZ - 0.2);
-  truck.add(sideWin);
-  const sideWin2 = sideWin.clone();
-  sideWin2.position.x = truckX + 1.46;
-  truck.add(sideWin2);
-  const grille = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 0.15), new THREE.MeshStandardMaterial({ color: 0x1b1e24, roughness: 0.5, metalness: 0.5 }));
-  grille.position.set(truckX, chassisY + 1, cabCenterZ - 1.35);
-  truck.add(grille);
-  const bumper = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.35, 0.3), bumperMat);
-  bumper.position.set(truckX, chassisY + 0.15, cabCenterZ - 1.45);
-  truck.add(bumper);
-  const headMat = new THREE.MeshStandardMaterial({ color: 0xfff2c0, emissive: 0xfff2c0, emissiveIntensity: 0.7 });
-  for (const side of [-1.15, 1.15]) {
-    const headlight = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.25, 0.06), headMat);
-    headlight.position.set(truckX + side, chassisY + 1.35, cabCenterZ - 1.45);
-    truck.add(headlight);
-  }
-  // fuel tank + exhaust stack, classic semi-truck detail
-  const fuelTank = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 1.6, 12), tankMat);
-  fuelTank.rotation.z = Math.PI / 2;
-  fuelTank.position.set(truckX - 1.35, chassisY - 0.05, cabCenterZ + 0.6);
-  truck.add(fuelTank);
-  const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 2.2, 8), new THREE.MeshStandardMaterial({ color: 0xc7ccd3, roughness: 0.3, metalness: 0.7 }));
-  stack.position.set(truckX - 1.35, chassisY + 1.8, cabCenterZ + 1.6);
-  truck.add(stack);
-
-  // fifth-wheel coupling plate — visually bridges tractor to trailer
-  const hitchZ = cabCenterZ + 3.1;
-  const hitchPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.14, 12), chassisMat);
-  hitchPlate.position.set(truckX, chassisY + 0.15, hitchZ);
-  truck.add(hitchPlate);
-
-  // ---- trailer ----
-  const trailerH = 3.2;
-  const trailerLen = 9;
-  const trailerFrontZ = hitchZ + 0.3;
-  const trailerCenterZ = trailerFrontZ + trailerLen / 2;
-
-  const trailerFrame = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.3, trailerLen + 0.4), chassisMat);
-  trailerFrame.position.set(truckX, chassisY, trailerCenterZ);
-  trailerFrame.castShadow = true;
-  truck.add(trailerFrame);
-
-  const trailer = new THREE.Mesh(new THREE.BoxGeometry(3.2, trailerH, trailerLen), trailerMat);
-  trailer.position.set(truckX, chassisY + trailerH / 2, trailerCenterZ);
-  trailer.castShadow = true;
-  truck.add(trailer);
-  const trailerNose = new THREE.Mesh(new THREE.BoxGeometry(3.2, trailerH, 0.5), trailerSkirtMat);
-  trailerNose.position.set(truckX, chassisY + trailerH / 2, trailerFrontZ + 0.25);
-  truck.add(trailerNose);
-  const skirt = new THREE.Mesh(new THREE.BoxGeometry(3.24, 0.5, trailerLen), trailerSkirtMat);
-  skirt.position.set(truckX, chassisY + 0.25, trailerCenterZ);
-  truck.add(skirt);
-  for (let i = -1; i <= 1; i++) {
-    const rib = new THREE.Mesh(new THREE.BoxGeometry(0.06, trailerH - 0.4, trailerLen), new THREE.MeshStandardMaterial({ color: 0xe0a03a, roughness: 0.6 }));
-    rib.position.set(truckX + i * 1.05, chassisY + trailerH / 2 + 0.1, trailerCenterZ);
-    truck.add(rib);
-  }
-  // rear doors + reflective strip
-  const doorSeam = new THREE.Mesh(new THREE.BoxGeometry(0.05, trailerH, 0.05), chassisMat);
-  doorSeam.position.set(truckX, chassisY + trailerH / 2, trailerFrontZ + trailerLen);
-  truck.add(doorSeam);
-  const reflectStrip = new THREE.Mesh(new THREE.BoxGeometry(3.22, 0.15, 0.02), new THREE.MeshStandardMaterial({ color: 0xd8342a, roughness: 0.4 }));
-  reflectStrip.position.set(truckX, chassisY + 0.9, trailerFrontZ + trailerLen);
-  truck.add(reflectStrip);
-
-  // landing legs (support the trailer nose when unhitched — reads as authentic detail)
-  for (const side of [-0.9, 0.9]) {
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, chassisY - 0.1, 8), chassisMat);
-    leg.position.set(truckX + side, (chassisY - 0.1) / 2, trailerFrontZ + 0.6);
-    truck.add(leg);
-  }
-
-  // wheels: tractor axles clustered under the cab, trailer axles clustered at the rear
-  const tractorWheelZs = [cabCenterZ - 1.1, cabCenterZ + 1.2];
-  const trailerWheelZs = [trailerFrontZ + trailerLen - 2.6, trailerFrontZ + trailerLen - 1.7, trailerFrontZ + trailerLen - 0.8];
-  for (const wz of [...tractorWheelZs, ...trailerWheelZs]) {
-    for (const side of [-1.55, 1.55]) {
-      const wheel = makeWheelGroup(wheelRadius, 0.5, 0x111318, 0xb8bcc4);
-      wheel.position.set(truckX + side, wheelRadius, wz);
-      truck.add(wheel);
+  const gltf = await loadGLTF("models/truck.glb");
+  const truck = gltf.scene;
+  truck.traverse((obj) => {
+    if (obj.isMesh) {
+      obj.castShadow = true;
+      obj.receiveShadow = true;
     }
-  }
+  });
+
+  const box = new THREE.Box3().setFromObject(truck);
+  const size = box.getSize(new THREE.Vector3());
+  const targetLength = 8.5;
+  const scale = targetLength / Math.max(size.x, size.z);
+  truck.scale.setScalar(scale);
+
+  const scaledBox = new THREE.Box3().setFromObject(truck);
+  const scaledSize = scaledBox.getSize(new THREE.Vector3());
+  truck.rotation.y = Math.PI / 2;
+  truck.position.set(truckX, -scaledBox.min.y, 0);
+
   scene.add(truck);
 }
 
-function buildCharacter() {
-  character = new THREE.Group();
-  const skinMat = new THREE.MeshStandardMaterial({ color: 0xe8b48a, roughness: 0.7 });
-  const shirtMat = new THREE.MeshStandardMaterial({ color: 0x2f6fb0, roughness: 0.6 });
-  const pantsMat = new THREE.MeshStandardMaterial({ color: 0x2a2f36, roughness: 0.7 });
-  const vestMat = new THREE.MeshStandardMaterial({ color: 0xffb648, roughness: 0.6 });
-  const shoeMat = new THREE.MeshStandardMaterial({ color: 0x1b1e24, roughness: 0.8 });
+const gltfLoader = new GLTFLoader();
 
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.28), shirtMat);
-  torso.position.y = 1.05;
-  torso.castShadow = true;
-  character.add(torso);
+function loadGLTF(url) {
+  return new Promise((resolve, reject) => {
+    gltfLoader.load(url, resolve, undefined, reject);
+  });
+}
 
-  const vest = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.4, 0.3), vestMat);
-  vest.position.y = 1.1;
-  character.add(vest);
-  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.06, 0.31), new THREE.MeshStandardMaterial({ color: 0xfff2c0, roughness: 0.5 }));
-  stripe.position.y = 1.25;
-  character.add(stripe);
+async function buildCharacter() {
+  const gltf = await loadGLTF("models/character.glb");
+  character = gltf.scene;
 
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), skinMat);
-  head.position.y = 1.55;
-  head.castShadow = true;
-  character.add(head);
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.21, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x1c2128, roughness: 0.6 }));
-  cap.position.y = 1.6;
-  character.add(cap);
+  const rawBox = new THREE.Box3().setFromObject(character);
+  const targetHeight = 1.8;
+  const scale = targetHeight / (rawBox.max.y - rawBox.min.y);
+  character.scale.setScalar(scale);
 
-  legL = new THREE.Group();
-  legL.position.set(-0.13, 0.75, 0);
-  const legLMesh = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.7, 0.2), pantsMat);
-  legLMesh.position.y = -0.35;
-  legLMesh.castShadow = true;
-  legL.add(legLMesh);
-  const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.12, 0.28), shoeMat);
-  shoeL.position.set(0, -0.7, 0.04);
-  legL.add(shoeL);
-  character.add(legL);
+  character.traverse((obj) => {
+    if (obj.isMesh) {
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+      obj.frustumCulled = false;
+    }
+  });
 
-  legR = new THREE.Group();
-  legR.position.set(0.13, 0.75, 0);
-  const legRMesh = legLMesh.clone();
-  legR.add(legRMesh);
-  const shoeR = shoeL.clone();
-  legR.add(shoeR);
-  character.add(legR);
-
-  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.5, 0.16), shirtMat);
-  armL.position.set(-0.32, 1.05, 0);
-  character.add(armL);
-  const armR = armL.clone();
-  armR.position.x = 0.32;
-  character.add(armR);
+  characterMixer = new THREE.AnimationMixer(character);
+  characterActions = {};
+  for (const clip of gltf.animations) {
+    characterActions[clip.name] = characterMixer.clipAction(clip);
+  }
+  if (characterActions.idle) characterActions.idle.play();
+  currentCharacterAction = "idle";
 
   scene.add(character);
+}
+
+function playCharacterAction(name) {
+  if (currentCharacterAction === name || !characterActions[name]) return;
+  const next = characterActions[name];
+  const prev = characterActions[currentCharacterAction];
+  next.reset().fadeIn(0.15).play();
+  if (prev) prev.fadeOut(0.15);
+  currentCharacterAction = name;
 }
 
 function buildVehicle() {
@@ -942,8 +836,7 @@ function startDay() {
   character.rotation.y = 0;
   footHeading = 0;
   character.visible = true;
-  legL.rotation.x = 0;
-  legR.rotation.x = 0;
+  playCharacterAction("idle");
   carrying = [];
   updateCarriedVisual();
   dayEarnings = 0;
@@ -1198,17 +1091,15 @@ function updateFoot(dt) {
     character.position.z += dz * footSpeed * dt;
     footHeading = Math.atan2(dx, dz);
     character.rotation.y = footHeading;
-    footPhase += dt * 9;
-    const swing = Math.sin(footPhase) * 0.5;
-    legL.rotation.x = swing;
-    legR.rotation.x = -swing;
+    playCharacterAction("walk");
   } else {
-    legL.rotation.x *= 0.8;
-    legR.rotation.x *= 0.8;
+    playCharacterAction("idle");
   }
 
   character.position.x = Math.max(WORLD_MIN_X, Math.min(WORLD_MAX_X, character.position.x));
   character.position.z = Math.max(WORLD_MIN_Z, Math.min(WORLD_MAX_Z, character.position.z));
+
+  if (characterMixer) characterMixer.update(dt);
 
   speedoFillEl.style.width = "0%";
   camera.fov = 62;
@@ -1624,8 +1515,19 @@ function refreshStartScreen() {
   }
 }
 
-initScene();
-refreshStartScreen();
+const loadingInfoEl = document.getElementById("loadingInfo");
+
+initScene()
+  .then(() => {
+    loadingInfoEl.classList.add("hidden");
+    startBtn.disabled = false;
+    refreshStartScreen();
+    if (hasSave()) continueGameBtn.disabled = false;
+  })
+  .catch((err) => {
+    loadingInfoEl.textContent = "⚠️ Kunne ikke indlæse 3D-modeller. Prøv at genindlæse siden.";
+    console.error(err);
+  });
 
 startBtn.addEventListener("click", () => {
   resetRun();
@@ -1683,3 +1585,16 @@ window.addEventListener("keydown", (e) => {
 window.addEventListener("keyup", (e) => {
   keys.delete(e.code);
 });
+
+window.__debug = () => ({
+  THREE, scene, camera, renderer, vehicle, character, vehicleState, playerMode,
+  characterActions, currentCharacterAction, running, money, day, carrying,
+  activeOrders, SHELVES, DOCK,
+});
+window.__setRunning = (v) => {
+  running = v;
+  if (v) {
+    lastTime = null;
+    requestAnimationFrame(loop);
+  }
+};

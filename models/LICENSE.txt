@@ -1,0 +1,5 @@
+3D models in this folder are from Kenney (kenney.nl), licensed CC0 1.0 (public domain) —
+free to use for any purpose, no attribution required.
+
+- character.glb  — from "Blocky Characters" pack (https://kenney.nl/assets/blocky-characters)
+- truck.glb      — from "Car Kit" pack (https://kenney.nl/assets/car-kit)

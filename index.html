@@ -8,7 +8,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
 </head>
 <body>
 
@@ -25,9 +32,10 @@
     </div>
 
     <div class="menuButtons">
-      <button id="startBtn" class="btnPrimary">🆕 Nyt spil</button>
-      <button id="continueGameBtn" class="btnPrimary btnSecondary hidden">▶️ Fortsæt spil</button>
+      <button id="startBtn" class="btnPrimary" disabled>🆕 Nyt spil</button>
+      <button id="continueGameBtn" class="btnPrimary btnSecondary hidden" disabled>▶️ Fortsæt spil</button>
     </div>
+    <p id="loadingInfo" class="saveInfo">⏳ Indlæser 3D-modeller...</p>
     <p id="saveInfo" class="saveInfo hidden"></p>
   </div>
 </div>
@@ -123,6 +131,6 @@
   </div>
 </div>
 
-<script src="game.js"></script>
+<script type="module" src="game.js"></script>
 </body>
 </html>
