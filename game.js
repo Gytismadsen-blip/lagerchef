@@ -28,32 +28,37 @@ const GOODS = [
   { type: "mobler", label: "Møbler", icon: "🪑", color: 0xc98a54 },
 ];
 
-const SHELF_Z = [-10.5, -3.5, 3.5, 10.5];
+const WORLD_MIN_X = -30;
+const WORLD_MAX_X = 30;
+const WORLD_MIN_Z = -20;
+const WORLD_MAX_Z = 20;
+
+const RACK_DEPTH = 3;
+const RACK_WIDTH = 3.4;
+const RACK_X = WORLD_MIN_X + 3;
+
+const SHELF_Z = [-13.5, -4.5, 4.5, 13.5];
 const SHELVES = GOODS.map((g, i) => ({
   ...g,
-  x: -19,
+  x: RACK_X,
   z: SHELF_Z[i],
-  zoneMinX: -22,
-  zoneMaxX: -15,
-  zoneMinZ: SHELF_Z[i] - 2.6,
-  zoneMaxZ: SHELF_Z[i] + 2.6,
+  zoneMinX: WORLD_MIN_X,
+  zoneMaxX: RACK_X + RACK_DEPTH / 2 + 3.5,
+  zoneMinZ: SHELF_Z[i] - RACK_WIDTH / 2,
+  zoneMaxZ: SHELF_Z[i] + RACK_WIDTH / 2,
 }));
 
 const DOCK = {
-  zoneMinX: 14,
-  zoneMaxX: 22,
-  zoneMinZ: -13,
-  zoneMaxZ: 13,
+  zoneMinX: WORLD_MAX_X - 10,
+  zoneMaxX: WORLD_MAX_X,
+  zoneMinZ: WORLD_MIN_Z,
+  zoneMaxZ: WORLD_MAX_Z,
 };
 
 const TOTAL_DAYS = 4;
-const DAY_LENGTH = 45;
-const BASE_MAX_SPEED = 11;
+const DAY_LENGTH = 60;
+const BASE_MAX_SPEED = 16;
 const BASE_MAX_ORDERS = 3;
-const WORLD_MIN_X = -21;
-const WORLD_MAX_X = 21;
-const WORLD_MIN_Z = -12;
-const WORLD_MAX_Z = 12;
 
 const UPGRADES = [
   { key: "speed", icon: "👟", name: "Turbo-motor", desc: "Gaffeltrucken kører hurtigere.", cost: 80 },
@@ -175,38 +180,63 @@ function initScene() {
   renderer.shadowMap.enabled = true;
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x9fb8c9);
-  scene.fog = new THREE.Fog(0x9fb8c9, 30, 62);
+  scene.background = new THREE.Color(0x14181f);
+  scene.fog = new THREE.Fog(0x14181f, 26, 72);
 
-  camera = new THREE.PerspectiveCamera(60, canvas.width / canvas.height, 0.1, 200);
+  camera = new THREE.PerspectiveCamera(62, canvas.width / canvas.height, 0.1, 200);
 
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x445566, 0.9);
+  const hemi = new THREE.HemisphereLight(0xdfe6ee, 0x2a2f36, 0.8);
   scene.add(hemi);
-  const sun = new THREE.DirectionalLight(0xfff2d9, 1.1);
-  sun.position.set(20, 30, 10);
+  const sun = new THREE.DirectionalLight(0xfff2d9, 1.15);
+  sun.position.set(15, 20, 10);
   sun.castShadow = true;
-  sun.shadow.camera.left = -30;
-  sun.shadow.camera.right = 30;
-  sun.shadow.camera.top = 25;
-  sun.shadow.camera.bottom = -25;
+  sun.shadow.camera.left = -35;
+  sun.shadow.camera.right = 35;
+  sun.shadow.camera.top = 30;
+  sun.shadow.camera.bottom = -30;
   sun.shadow.mapSize.set(1024, 1024);
   scene.add(sun);
 
-  const floorGeo = new THREE.PlaneGeometry(WORLD_MAX_X - WORLD_MIN_X + 2, WORLD_MAX_Z - WORLD_MIN_Z + 2, 20, 12);
+  const worldW = WORLD_MAX_X - WORLD_MIN_X;
+  const worldD = WORLD_MAX_Z - WORLD_MIN_Z;
+  const wallH = 8.5;
+
+  const floorGeo = new THREE.PlaneGeometry(worldW + 2, worldD + 2, 24, 16);
   const floorMat = new THREE.MeshStandardMaterial({ map: makeConcreteTexture(), roughness: 0.95 });
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   scene.add(floor);
 
-  const backWallGeo = new THREE.BoxGeometry(WORLD_MAX_X - WORLD_MIN_X + 4, 6, 1);
   const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a3341, roughness: 0.9 });
-  const backWall = new THREE.Mesh(backWallGeo, wallMat);
-  backWall.position.set(0, 3, WORLD_MIN_Z - 1.2);
-  backWall.receiveShadow = true;
-  scene.add(backWall);
+  const wallDefs = [
+    { w: worldW + 4, h: wallH, d: 0.6, pos: [0, wallH / 2, WORLD_MIN_Z - 0.3] },
+    { w: worldW + 4, h: wallH, d: 0.6, pos: [0, wallH / 2, WORLD_MAX_Z + 0.3] },
+    { w: 0.6, h: wallH, d: worldD + 4, pos: [WORLD_MIN_X - 0.3, wallH / 2, 0] },
+    { w: 0.6, h: wallH, d: worldD + 4, pos: [WORLD_MAX_X + 0.3, wallH / 2, 0] },
+  ];
+  for (const wd of wallDefs) {
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(wd.w, wd.h, wd.d), wallMat);
+    wall.position.set(...wd.pos);
+    wall.receiveShadow = true;
+    wall.castShadow = true;
+    scene.add(wall);
+  }
 
-  buildPillarsAndLights();
+  const ceilMat = new THREE.MeshStandardMaterial({ color: 0x171b22, roughness: 0.95, side: THREE.DoubleSide });
+  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(worldW + 2, worldD + 2), ceilMat);
+  ceiling.rotation.x = Math.PI / 2;
+  ceiling.position.y = wallH;
+  scene.add(ceiling);
+
+  const trussMat = new THREE.MeshStandardMaterial({ color: 0x3a4452, roughness: 0.7, metalness: 0.3 });
+  for (let tx = WORLD_MIN_X + 5; tx <= WORLD_MAX_X - 5; tx += 8) {
+    const truss = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, worldD), trussMat);
+    truss.position.set(tx, wallH - 0.4, 0);
+    scene.add(truss);
+  }
+
+  buildPillarsAndLights(wallH);
   for (const s of SHELVES) buildShelf(s);
   buildDock();
   buildVehicle();
@@ -236,30 +266,37 @@ function initScene() {
   DOCK.labelEl = dockLabel;
 }
 
-function buildPillarsAndLights() {
+function buildPillarsAndLights(wallH) {
   const pillarMat = new THREE.MeshStandardMaterial({ color: 0x3a4452, roughness: 0.8 });
   const fixtureMat = new THREE.MeshStandardMaterial({ color: 0x1b2028, roughness: 0.6 });
   const bulbMat = new THREE.MeshBasicMaterial({ color: 0xfff2c0 });
-  const pillarXs = [-8, 8];
-  const pillarZs = [-9, 0, 9];
+  const pillarXs = [-11, 11];
+  const pillarZs = [-14, 0, 14];
+  const lampH = wallH - 0.6;
   for (const px of pillarXs) {
     for (const pz of pillarZs) {
-      const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.7, 8, 0.7), pillarMat);
-      pillar.position.set(px, 4, pz);
+      const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.6, wallH, 0.6), pillarMat);
+      pillar.position.set(px, wallH / 2, pz);
       pillar.castShadow = true;
       pillar.receiveShadow = true;
       scene.add(pillar);
+    }
+  }
 
+  const lampXs = [-18, -6, 6, 18];
+  const lampZs = [-13, 0, 13];
+  for (const px of lampXs) {
+    for (const pz of lampZs) {
       const fixtureGroup = new THREE.Group();
-      fixtureGroup.position.set(px, 7.6, pz);
+      fixtureGroup.position.set(px, lampH, pz);
       const housing = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 0.25, 10), fixtureMat);
       const bulb = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.05, 10), bulbMat);
       bulb.position.y = -0.14;
       fixtureGroup.add(housing, bulb);
       scene.add(fixtureGroup);
 
-      const lamp = new THREE.PointLight(0xfff2c0, 0.5, 14, 2);
-      lamp.position.set(px, 7.3, pz);
+      const lamp = new THREE.PointLight(0xfff2c0, 0.55, 16, 2);
+      lamp.position.set(px, lampH - 0.3, pz);
       scene.add(lamp);
     }
   }
@@ -267,14 +304,8 @@ function buildPillarsAndLights() {
 
 function buildShelf(s) {
   const group = new THREE.Group();
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0x54607a, roughness: 0.7 });
-  const frameGeo = new THREE.BoxGeometry(3.2, 3.4, 3.6);
-  const frame = new THREE.Mesh(frameGeo, frameMat);
-  frame.position.set(s.x, 1.7, s.z);
-  frame.castShadow = true;
-  frame.receiveShadow = true;
-  group.add(frame);
-
+  const steelMat = new THREE.MeshStandardMaterial({ color: 0xd45a2a, roughness: 0.55, metalness: 0.35 });
+  const palletMat = new THREE.MeshStandardMaterial({ color: 0x9c7b45, roughness: 0.9 });
   const glowMat = new THREE.MeshStandardMaterial({
     color: s.color,
     emissive: new THREE.Color(s.color),
@@ -282,17 +313,57 @@ function buildShelf(s) {
     roughness: 0.5,
   });
   shelfGlowMats[s.type] = glowMat;
-  const crateGeo = new THREE.BoxGeometry(1, 0.9, 1);
-  const positions = [
-    [-0.9, 2.9, -1.4], [0.1, 2.9, -0.4], [0.9, 2.9, 0.6],
-    [-0.6, 1.1, 1.4], [0.6, 1.1, -1.6],
-  ];
-  for (const p of positions) {
-    const crate = new THREE.Mesh(crateGeo, glowMat);
-    crate.position.set(s.x + p[0], p[1], s.z + p[2]);
-    crate.castShadow = true;
-    group.add(crate);
+
+  const halfD = RACK_DEPTH / 2;
+  const halfW = RACK_WIDTH / 2;
+  const postH = 4.6;
+  const levels = [0.05, 1.75, 3.45];
+
+  const postGeo = new THREE.BoxGeometry(0.14, postH, 0.14);
+  for (const ox of [-halfD, halfD]) {
+    for (const oz of [-halfW, halfW]) {
+      const post = new THREE.Mesh(postGeo, steelMat);
+      post.position.set(s.x + ox, postH / 2, s.z + oz);
+      post.castShadow = true;
+      group.add(post);
+    }
   }
+
+  for (const ly of levels.slice(1)) {
+    for (const oz of [-halfW, halfW]) {
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(RACK_DEPTH + 0.2, 0.12, 0.12), steelMat);
+      beam.position.set(s.x, ly, s.z + oz);
+      group.add(beam);
+    }
+    const braceFront = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, RACK_WIDTH), steelMat);
+    braceFront.position.set(s.x - halfD, ly, s.z);
+    group.add(braceFront);
+    const braceBack = braceFront.clone();
+    braceBack.position.x = s.x + halfD;
+    group.add(braceBack);
+  }
+  const topSign = new THREE.Mesh(new THREE.BoxGeometry(RACK_DEPTH + 0.2, 0.3, 0.1), glowMat);
+  topSign.position.set(s.x, postH + 0.15, s.z - halfW);
+  group.add(topSign);
+
+  const palletGeo = new THREE.BoxGeometry(RACK_DEPTH - 0.4, 0.15, RACK_WIDTH - 0.5);
+  const crateGeo = new THREE.BoxGeometry(0.85, 0.7, 0.85);
+  levels.forEach((ly) => {
+    const pallet = new THREE.Mesh(palletGeo, palletMat);
+    pallet.position.set(s.x, ly + 0.1, s.z);
+    pallet.receiveShadow = true;
+    pallet.castShadow = true;
+    group.add(pallet);
+
+    const spots = [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]];
+    for (const [ox, oz] of spots) {
+      const crate = new THREE.Mesh(crateGeo, glowMat);
+      crate.position.set(s.x + ox, ly + 0.1 + 0.075 + 0.35, s.z + oz * (RACK_WIDTH / 3.4));
+      crate.castShadow = true;
+      group.add(crate);
+    }
+  });
+
   scene.add(group);
 }
 
@@ -311,7 +382,7 @@ function buildDock() {
   scene.add(pad);
 
   const truck = new THREE.Group();
-  const truckX = 18.5;
+  const truckX = WORLD_MAX_X - 5;
   const wheelRadius = 0.65;
   const wheelTop = wheelRadius * 2 * 0.75; // visual ride height above axle center
   const chassisY = wheelTop + 0.15;
@@ -775,7 +846,7 @@ function updateVehicle(dt) {
 
 function updateCamera(dt) {
   const forward = new THREE.Vector3(Math.sin(vehicleState.heading), 0, Math.cos(vehicleState.heading));
-  const desired = vehicle.position.clone().addScaledVector(forward, -9).add(new THREE.Vector3(0, 5.5, 0));
+  const desired = vehicle.position.clone().addScaledVector(forward, -11).add(new THREE.Vector3(0, 6.5, 0));
   camera.position.lerp(desired, Math.min(1, dt * 4));
   const lookTarget = vehicle.position.clone().add(new THREE.Vector3(0, 1.2, 0));
   camera.lookAt(lookTarget);
